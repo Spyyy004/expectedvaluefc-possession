@@ -292,6 +292,38 @@ def touch_features(h):
     return pd.DataFrame(f)
 
 
+def inferred_ball(px, py, span_s=0.2, min_speed=2.0):
+    """Convergence attractor: guess the ball from where players are running, without the ball.
+
+    Each moving player (> min_speed m/s over span_s seconds) defines a line along their running direction; the
+    inferred ball is the point closest to all lines (least squares, faster players count more),
+    with a weak pull towards the centroid of all players. Smoothed with a 0.4 s rolling median."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        vx = np.full(px.shape, np.nan)
+        vy = np.full(px.shape, np.nan)
+        k = max(1, int(round(span_s * FPS)))
+        vx[k:], vy[k:] = (px[k:] - px[:-k]) / span_s, (py[k:] - py[:-k]) / span_s
+        sp = np.hypot(vx, vy)
+        w = np.where((sp > min_speed) & ~np.isnan(sp), sp, 0.0)
+        ux, uy = np.nan_to_num(vx / np.where(sp > 0, sp, 1)), np.nan_to_num(vy / np.where(sp > 0, sp, 1))
+        pxn, pyn = np.nan_to_num(px), np.nan_to_num(py)
+        # projector onto the normal of each line: P = I - u u^T
+        a11, a12, a22 = 1 - ux * ux, -ux * uy, 1 - uy * uy
+        lam = 0.5                                           # weak pull towards the players' centroid
+        cx = np.nanmean(px, axis=1)
+        cy = np.nanmean(py, axis=1)
+        A11 = (w * a11).sum(1) + lam
+        A12 = (w * a12).sum(1)
+        A22 = (w * a22).sum(1) + lam
+        B1 = (w * (a11 * pxn + a12 * pyn)).sum(1) + lam * np.nan_to_num(cx)
+        B2 = (w * (a12 * pxn + a22 * pyn)).sum(1) + lam * np.nan_to_num(cy)
+        det = A11 * A22 - A12 * A12
+        ibx = np.clip((A22 * B1 - A12 * B2) / det, -5, LENGTH + 5)
+        iby = np.clip((A11 * B2 - A12 * B1) / det, -5, WIDTH + 5)
+    return _roll(ibx, 0.4, "median"), _roll(iby, 0.4, "median")
+
+
 def collective_features(h):
     """Team-level movement clues for turnovers inside ball blackouts (expert suggestion, Phase 2 #3).
 
@@ -331,28 +363,8 @@ def collective_features(h):
         f["cross_dir_last"] = _fill(np.where(cross, sgn, np.nan))
         f["cross_dir_next"] = _fill(np.where(cross, sgn, np.nan), backwards=True)
 
-        # 3) inferred ball: least-squares intersection of player movement lines, weighted by speed
-        vx = np.full(px.shape, np.nan)
-        vy = np.full(px.shape, np.nan)
-        vx[5:], vy[5:] = (px[5:] - px[:-5]) / 0.2, (py[5:] - py[:-5]) / 0.2
-        sp = np.hypot(vx, vy)
-        w = np.where((sp > 2.0) & ~np.isnan(sp), sp, 0.0)
-        ux, uy = np.nan_to_num(vx / np.where(sp > 0, sp, 1)), np.nan_to_num(vy / np.where(sp > 0, sp, 1))
-        pxn, pyn = np.nan_to_num(px), np.nan_to_num(py)
-        # projector onto the normal of each line: P = I - u u^T
-        a11, a12, a22 = 1 - ux * ux, -ux * uy, 1 - uy * uy
-        lam = 0.5                                           # weak pull towards the players' centroid
-        cx = np.nanmean(px, axis=1)
-        cy = np.nanmean(py, axis=1)
-        A11 = (w * a11).sum(1) + lam
-        A12 = (w * a12).sum(1)
-        A22 = (w * a22).sum(1) + lam
-        B1 = (w * (a11 * pxn + a12 * pyn)).sum(1) + lam * np.nan_to_num(cx)
-        B2 = (w * (a12 * pxn + a22 * pyn)).sum(1) + lam * np.nan_to_num(cy)
-        det = A11 * A22 - A12 * A12
-        ibx = np.clip((A22 * B1 - A12 * B2) / det, -5, LENGTH + 5)
-        iby = np.clip((A11 * B2 - A12 * B1) / det, -5, WIDTH + 5)
-        ibx, iby = _roll(ibx, 0.4, "median"), _roll(iby, 0.4, "median")
+        # 3) inferred ball (convergence attractor)
+        ibx, iby = inferred_ball(px, py)
         d = np.hypot(px - ibx[:, None], py - iby[:, None])
         d = np.where(np.isnan(d), np.inf, d)
         f["infer_near_diff"] = d[:, away].min(axis=1) - d[:, home].min(axis=1)

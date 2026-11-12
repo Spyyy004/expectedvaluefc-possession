@@ -149,7 +149,7 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
     <div><dt>Deadline</dt><dd id="days">17 Nov</dd><small>Submission form closes 17 Nov 2026</small></div>
     <div><dt>Score to beat</dt><dd>0.2433</dd><small>spellF1, baseline_smooth50</small></div>
     <div><dt>Our best</dt><dd>0.601</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.265)</small></div>
-    <div><dt>Now on</dt><dd>Phase 2 done</dd><small>#1 adopted; #2, #3, #4 not adopted. Next: deliverables</small></div>
+    <div><dt>Now on</dt><dd>Phase 4</dd><small>Frozen for 13 Nov (D51); document updated</small></div>
   </dl>
 
   <nav role="tablist">
@@ -543,6 +543,87 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Side finding (limitation for the document):</b> Bundesliga truth sends 70% of restarts to the other team, our predictions only 43%; Metrica-derived labels say 35%. Conventions disagree, so not safely fixable now. Our file: 56% of 82 stoppages.</li>
           </ul>
         </div></li>
+      <li><time>6 Nov 2026</time><h3>Phase 3: public repo created <span class="pill done">live</span></h3>
+        <p><b>https://github.com/Spyyy004/offsidefc-possession</b> (public, account Spyyy004 at your request; nothing was ever created on AyushPawar004). First commit d5e6109.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Contents (53 files, 2.1 MB):</b> <code>make_submission.py</code> (one command), <code>fetch_external.py</code> (downloads and checksum-verifies IDSSE and Metrica data, then parses), <code>analysis/</code> (all modules and experiments 01–22), <code>docs/</code> (process log, rules, glossary, expert brief and feedback), organisers' <code>games.py</code>, scorer and baseline (MIT, LICENSE-organisers), pinned <code>requirements.txt</code>, README with expected SHA-1, data credits and a rules-compliance statement, MIT licence.</li>
+            <li><b>Leak checks:</b> before commit and on GitHub, the only data file is the organisers' public 5-minute ground truth (already public, MIT). No match data, external data or submissions.</li>
+            <li><b>Fresh-clone reproduction test: passed.</b> Clean clone of the GitHub commit, fresh environment, all external data re-downloaded and checksum-verified (~15 min), build ~1.5 min. Output SHA-1 7fe033d5… identical to our file.</li>
+          </ul>
+        </div></li>
+      <li><time>6 Nov 2026</time><h3>Phase 3: technical document drafted <span class="pill next">draft for your review</span></h3>
+        <p>Source <code>docs/technical_document.md</code>; builder <code>docs/build_pdf.py</code> (reportlab 5.1.0); output <code>submissions/OffsideFC.pdf</code> (4 A4 pages, git-ignored).</p>
+        <div class="finding">
+          <ul>
+            <li><b>Sections</b> (as SUBMISSION.md asks): summary; approach and why; assets used and dropped; training data (sources, who labelled, how much; none from the provided game); possession rules; missing and noisy tracking; validation and results with a per-match table; tested-but-not-adopted ideas; diagnostic ceilings; limitations; reproduction and data credits.</li>
+            <li><b>Per-match table (realistic bench):</b> the final system beats the baseline on all 10 matches; Metrica pooled 0.595 vs 0.262, Bundesliga 0.483 vs 0.203.</li>
+          </ul>
+        </div></li>
+      <li><time>8 Nov 2026</time><h3>Phase 4 #1: convergence attractor quality check <span class="pill wait">idea fails its own check</span></h3>
+        <p>Scripts: <code>inferred_ball()</code> split out of <code>collective_features()</code> in <code>analysis/features.py</code> (same output; submission SHA-1 unchanged) and <code>analysis/23_attractor_check.py</code>. Question: before using the inferred ball as a clue for turnovers in ball blackouts, is it actually near the ball?</p>
+        <div class="finding">
+          <ul>
+            <li><b>Distance to the real ball:</b> median 19.5 m (Bundesliga) / 18.7 m (Metrica), same as the plain centroid of all players (19.6 / 18.7 m). Only ~15% within 10 m.</li>
+            <li><b>Not a noise problem:</b> on clean tracking (no jitter, no dropouts) still 15.6 m; longer speed windows (0.5 s, 1 s) barely help (18.2 m at best under noise).</li>
+            <li><b>Team call:</b> the team nearest the inferred ball has the ball only ~41–43% of live frames, and 43% in Bundesliga blackouts vs <b>64% for our existing "nearest when last seen" clue</b>. On short possessions in blackouts: 51% (coin flip). Below 50% because defenders run towards the ball and the goal while attackers spread into space.</li>
+            <li><b>Our match behaves the same</b> (proxy without labels: 47% vs 45–47% on the bench), so no domain trap, just no signal.</li>
+            <li><b>Recommendation:</b> stop here; no model test needed. Decision pending (your call).</li>
+          </ul>
+        </div></li>
+      <li><time>8 Nov 2026</time><h3>Phase 4 #2: are blackouts and missed short possessions one problem? (your question) <span class="pill done">measured</span></h3>
+        <p>Script: <code>analysis/24_visibility_split.py</code>. Current system's leave-one-match-out predictions, realistic bench; for every true possession, the share of its frames with the ball visible, and whether we found it (IoU 0.5).</p>
+        <div class="finding">
+          <ul>
+            <li><b>Metrica (real blackouts): two separate problems, and blackouts are the small one.</b> Of the 243 short possessions (&lt; 5 s) we miss, <b>84% had the ball visible the whole time</b> and 99% had it visible at least half the time. Only 1% were mostly in a blackout. Found and missed short possessions have the same visibility (83.5% fully visible in both).</li>
+            <li><b>Even with the ball fully visible we find only 17% of possessions under 2 s and 40% of 2–5 s ones</b> (75–90% for longer ones).</li>
+            <li><b>Why the old "39% invisible" figure misled:</b> it came from the Bundesliga bench, where our code places blackouts; there 13% of misses are fully invisible (vs 6% of finds). In real tracking, blackouts sit mostly in stoppages (79% of dead frames vs 16% live), so short open-play possessions are usually well tracked.</li>
+            <li><b>40% of the missed short possessions are swallowed</b> by the other team's possession (Metrica 40%, Bundesliga 38%); the other 60% are found partly but with overlap under 0.5, wrong team or called dead.</li>
+            <li><b>Meaning:</b> the attractor (and any blackout-filling idea) aimed at the minor problem. The real limit is reading brief, fully visible spells correctly from 1 m-wobbly tracking.</li>
+          </ul>
+        </div></li>
+      <li><time>8 Nov 2026</time><h3>Phase 4 #3: timing vs wrong label for missed short possessions <span class="pill done">measured</span></h3>
+        <p>Script: <code>analysis/25_miss_types.py</code>. For each missed possession under 5 s, what we predicted over its frames. Same predictions as #2.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Metrica, 243 misses:</b> swallowed by the other team 40% · our same-team piece over 2× too long 23% · called dead 22% · mostly wrong team 8% · shifted boundaries 6% · split 0%. Bundesliga: 38 / 29 / 20 / 9 / 3 / 0%.</li>
+            <li><b>"Too long" is not timing:</b> in 98% of those cases our piece also covers a real possession of the other team, so it is the same missed turnover seen from the other side.</li>
+            <li><b>Regrouped (Metrica):</b> <b>missed turnover 71%</b> (swallowed + too long + wrong team) · <b>eaten by a dead ball 22%</b> · <b>pure timing 6%</b> (median IoU 0.40, off by about 1–2 s).</li>
+            <li><b>Meaning:</b> boundary placement is not the problem; detecting that the ball changed team at all is. The second, new pocket is short possessions next to stoppages that our dead-ball runs cover.</li>
+          </ul>
+        </div></li>
+      <li><time>8 Nov 2026</time><h3>Phase 4 #4: the dead-ball pocket <span class="pill wait">too small and scattered to fix</span></h3>
+        <p>Script: <code>analysis/26_dead_pocket.py</code>. Where the short possessions we call dead sit relative to the true stoppages.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Size:</b> 55 of 352 short possessions on Metrica (16%; Bundesliga 17%), i.e. about 6% of all Metrica possessions.</li>
+            <li><b>Metrica split:</b> just before the ball goes out 35% (median 0.8 s, our stoppage starts 1.5 s early: the last-touch case D48 already lost on) · between two stoppages 31% (median 2.5 s: we merge two stoppages into one) · just after a restart 22% (we resume about 2.2 s late) · invented stoppage in open play 13%.</li>
+            <li><b>Sources disagree:</b> on the Bundesliga bench "after restart" is 16 s late, not 2 s, and "before stoppage" dominates (51%), so no single fix is supported by both.</li>
+            <li><b>Ceiling:</b> fixing every case would add at most ~6% of possessions on Metrica; a realistic fix catches a fraction, in groups of 7–19 cases, too few to pass the paired test reliably before the 13 Nov freeze.</li>
+          </ul>
+        </div></li>
+      <li><time>8 Nov 2026</time><h3>Phase 4 #5: ball visible, so where does the evidence go? (your question) <span class="pill done">measured</span></h3>
+        <p>Script: <code>analysis/27_evidence_check.py</code>. Team-model probability for the right team inside short possessions with the ball fully visible, plus false alarms inside long possessions.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Found short possessions:</b> the model leans to the right team in 98% (median P 0.77).</li>
+            <li><b>Missed ones (Metrica, 159):</b> in <b>60% the model itself leans to the wrong team</b> (median P 0.41): the frame judge does not read the change, even though the ball is tracked.</li>
+            <li><b>In the other 40% the model leans right but the referee overrules it</b> (about 30 per 90 live minutes), because the same pattern, a 1–5 s lean to the other team, appears <b>about 60 times per 90 minutes inside long possessions where nothing changed</b> (median 1.7 s). Accepting all brief leans would add roughly two fakes per real catch. Bundesliga: same picture (44% right; 107 vs 50 per 90).</li>
+            <li><b>Correction:</b> this is a limitation of our model (clues and their smoothing, label style, 1 m wobble), not proof that the data holds no evidence.</li>
+            <li><b>Correction (12 Nov, see #6):</b> the "referee overrules it" reading was wrong. In most of that 40% the referee already gives the right team; the possession fails because it is merged with a neighbour.</li>
+          </ul>
+        </div></li>
+      <li><time>12 Nov 2026</time><h3>Phase 4 #6: ceiling check for a "lean judge" (is this the best we can do?) <span class="pill done">measured</span></h3>
+        <p>Script: <code>analysis/28_lean_ceiling.py</code>. We pretend a <b>perfect</b> judge (one that peeks at the true labels) decides which brief leans of the team model against the referee are real turnovers. External bench only; this is an upper limit, not a method.</p>
+        <div class="finding">
+          <ul>
+            <li><b>The referee already accepts almost every clear lean:</b> only 2 leans of 1–5 s against its call in all 10 matches. With 0.4–5 s, there are 214 leans, 44% of them real.</li>
+            <li><b>A perfect lean judge adds +0.001 spellF1</b> (Metrica −0.001, Bundesliga +0.002, within noise). <b>Accepting every lean costs −0.025 on Metrica.</b></li>
+            <li><b>Correction to #5:</b> in 72% (Metrica) and 79% (Bundesliga) of the "leaned right but missed" possessions, the referee <i>already</i> gives the right team on at least 80% of the frames. They fail on the neighbouring possession being merged in. That is the "swallowed" problem seen from the other side.</li>
+            <li><b>Generous caps</b> (true boundaries painted in): fixing every leaned-right miss adds +0.010 on Metrica; fixing <b>all</b> missed short possessions adds +0.17. So the room is almost entirely in the possessions where the <b>team model itself reads the wrong team</b>, which needs a better team model, not a better referee.</li>
+            <li><b>Decision (D51):</b> no lean judge. With the freeze on 13 Nov, a new team model cannot be built and fairly tested in time. The corrected error breakdown went into the technical document's Limitations section, and the PDF was rebuilt.</li>
+          </ul>
+        </div></li>
     </ol>
   </section>
 
@@ -695,6 +776,15 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <article><h3><span class="id">D48</span>No last-touch-before-out rule; no separate boundary refinement</h3>
         <p>Post-processing stays as it is.</p>
         <p class="why">Why: last-touch rule loses on all 10 matches (−0.003); boundary refinement showed no gain inside the HSMM test and shifted boundaries are only 7% of misses.</p></article>
+      <article><h3><span class="id">D49</span>No inferred ball (convergence attractor)</h3>
+        <p><code>inferred_ball()</code> stays in <code>analysis/features.py</code> as a tested idea; the submission is unchanged.</p>
+        <p class="why">Why: median 18.7 m from the true ball on Metrica, no better than the players' centroid; it picks the right team in blackouts only 43% of the time vs 64% for the existing last-seen clue (Phase 4 #1).</p></article>
+      <article><h3><span class="id">D50</span>No fix for the dead-ball pocket</h3>
+        <p>Short possessions swallowed by a stoppage we called (22% of short misses on Metrica) stay as they are.</p>
+        <p class="why">Why: the cases split four ways (before / between / after stoppages, open play), Metrica and Bundesliga disagree on which dominates, and the largest group is the last-touch case D48 already lost on (Phase 4 #4).</p></article>
+      <article><h3><span class="id">D51</span>No "lean judge"; the system is frozen for 13 Nov</h3>
+        <p>We stop experimenting; <code>submissions/OffsideFC.csv</code> stays at SHA-1 7fe033d5….</p>
+        <p class="why">Why: even a perfect lean judge adds +0.001 (Phase 4 #6). The real room (+0.17 on Metrica if every short miss were fixed) needs a new short-window team model, which cannot be built and fairly tested before the freeze. Agreed with you, 12 Nov.</p></article>
     </div>
   </section>
 
@@ -879,6 +969,8 @@ BROADCAST CAMERA (TV feed, own timeline, not synced): same file types, parked</p
       <div class="term"><dt>Threshold</dt><dd>A cut-off. "Matched at IoU 0.5" means the overlap must be at least 0.5 to count as the same possession.</dd></div>
       <div class="term"><dt>spellF1<span class="star">★</span></dt><dd>The ranking metric. Cut real and predicted labels into possessions; pair each prediction with at most one real possession of the same team, best overlap first; a pair is a hit above the IoU threshold; take F1; average over thresholds 0.3 to 0.7. <span class="eg">"Did I find each real possession, with roughly the right start and end, without inventing fake ones?"</span></dd></div>
       <div class="term"><dt>Flickering<span class="star">★</span></dt><dd>Our answer switching between teams for a few frames when nothing changed on the pitch. <span class="eg">An Athletic player jogs past the Barça player on the ball, is 10 cm closer for 3 frames, and "nearest player" hands Athletic the ball: H H H A A H H turns 1 possession into 3.</span> Cheap on macroF1, very expensive on spellF1. The trick is telling a real brief win of the ball from a player jogging past.</dd></div>
+      <div class="term"><dt>Convergence attractor (inferred ball)</dt><dd>A guess of where the ball is, made only from where the players are running: the point that all running directions point at best. <span class="eg">If six players sprint towards the same spot, the ball is probably there.</span> Tested 8 Nov: lands ~19 m from the real ball, no better than the centroid, because defenders chase the ball while attackers run into space.</dd></div>
+      <div class="term"><dt>Centroid</dt><dd>The average position of a group of players (their centre of mass). Used as the dumb baseline any clever ball-guess must beat.</dd></div>
       <div class="term"><dt>Fragmentation</dt><dd>Breaking one real possession into several predicted ones. The number-one enemy of spellF1: one wrong frame turns 1 possession into 3.</dd></div>
       <div class="term"><dt>Abstention (X) and forward-fill<span class="star">★</span></dt><dd>macroF1 counts X as wrong. spellF1 first replaces each X with your previous label. <span class="eg">So X inside a possession is free; X across a hand-over drags the old team past the change.</span></dd></div>
       <div class="term"><dt>Confusion matrix</dt><dd>A table with the true answer on each row and what we said on each column. The diagonal is what we got right; everything else shows exactly which mistake we make. <span class="eg">Row "truly D", column "we said H" = dead balls we called Barça possession.</span></dd></div>

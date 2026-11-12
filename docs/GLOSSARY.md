@@ -346,3 +346,13 @@ on the laptop. Git ignores it.
 Running the same code on the same data gives exactly the same file every time. Required here — the
 organisers may rerun your repo and the output must match byte for byte. (Watch out for randomness;
 fix random seeds.)
+
+**Convergence attractor (inferred ball)**
+A guess of where the ball is, made only from where players are running: the point that all their
+running directions point at best. "Six players sprint towards one spot, so the ball is probably
+there." Checked 8 Nov: ~19 m from the real ball, no better than the centroid, because defenders
+chase the ball while attackers run into space.
+
+**Centroid**
+The average position of a group of players (their centre of mass). The dumb baseline any clever
+ball-guess must beat.
