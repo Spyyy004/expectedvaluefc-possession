@@ -356,3 +356,24 @@ chase the ball while attackers run into space.
 **Centroid**
 The average position of a group of players (their centre of mass). The dumb baseline any clever
 ball-guess must beat.
+
+**SkillCorner open data**
+20 A-League (Australia) matches that SkillCorner published for free (MIT licence) with tracking
+taken from the broadcast video at 10 frames per second, and their automatic "phases of play".
+Added as training data in Phase 5 (15 Nov). It is "other games", so the rules allow it.
+
+**Phases of play**
+SkillCorner's automatic segmentation of a match into stretches like build-up, progression,
+creating chances, each tagged with the team in possession. Only defined while the ball is in play,
+so the gaps between phases are stoppages. We turn them into our labels: team = the phase's team,
+dead = a gap of 2 s or longer.
+
+**Upsampling (10 fps -> 25 fps)**
+Filling in positions between recorded frames by drawing a straight line between neighbours
+(linear interpolation), so that data recorded 10 times a second matches our 25 frames per second.
+Gaps in the original stay gaps.
+
+**Transfer check**
+A test without labels: compare how every feature is distributed on the external data against our
+match. If a feature behaves very differently (e.g. twice as frequent), a model trained on it will
+misfire on our match. Phase 5 #1: 0 of 77 features flagged for SkillCorner.

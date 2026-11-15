@@ -69,6 +69,21 @@ def load_metrica_halves():
     return halves
 
 
+SKILLCORNER_CACHE = os.path.join(ROOT, "external", "skillcorner", "cache")
+
+
+def load_skillcorner_halves():
+    """SkillCorner open data (A-League, MIT), in our shape by skillcorner_parse.py (Phase 5)."""
+    halves = []
+    for path in sorted(glob.glob(os.path.join(SKILLCORNER_CACHE, "SC-*.npz"))):
+        d = np.load(path)
+        for h in (1, 2):
+            p = "h{}_".format(h)
+            halves.append(dict(match=os.path.basename(path)[:-4], half=h, source="skillcorner",
+                               **{k: d[p + k] for k in ("px", "py", "ps", "team", "bx", "by", "label")}))
+    return halves
+
+
 def load_dfl_halves():
     """[{match, half, px, py, ps, team, bx, by, label}] for every IDSSE half."""
     halves = []
@@ -215,7 +230,9 @@ def add_wrong_team(half, profile, rng):
 def degrade(half, profile, seed, jitter=0.0, dead_link=False, wrong_team=False):
     """Copy of a half with an unfrozen ball, ball blackouts and player dropouts like our tracking."""
     rng = np.random.default_rng(seed)
-    metrica = half.get("source") == "metrica"
+    # Metrica and SkillCorner come from real tracking: the ball is really missing, never frozen,
+    # so no synthetic blackouts or un-freezing are applied to them.
+    metrica = half.get("source") in ("metrica", "skillcorner")
     half = add_jitter(half if metrica else unfreeze_ball(half), jitter, np.random.default_rng(seed + 7))
     out = dict(half)
     n = len(half["label"])
@@ -320,7 +337,8 @@ def bench(profile=None, jitter=0.0, labels="dfl", sources=("dfl",), dead_link=Fa
     labels = 'dfl' (as published, touch style) or 'control' (converted to control style, D35)."""
     profile = profile or our_mess_profile()
     out = []
-    pool = (load_dfl_halves() if "dfl" in sources else []) + (load_metrica_halves() if "metrica" in sources else [])
+    pool = ((load_dfl_halves() if "dfl" in sources else []) + (load_metrica_halves() if "metrica" in sources else [])
+            + (load_skillcorner_halves() if "skillcorner" in sources else []))
     for k, h in enumerate(pool):
         if labels == "control" and h.get("source") == "dfl":
             h = dict(h)

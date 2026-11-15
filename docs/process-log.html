@@ -149,7 +149,7 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
     <div><dt>Deadline</dt><dd id="days">17 Nov</dd><small>Submission form closes 17 Nov 2026</small></div>
     <div><dt>Score to beat</dt><dd>0.2433</dd><small>spellF1, baseline_smooth50</small></div>
     <div><dt>Our best</dt><dd>0.601</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.265)</small></div>
-    <div><dt>Now on</dt><dd>Phase 4</dd><small>Frozen for 13 Nov (D51); document updated</small></div>
+    <div><dt>Now on</dt><dd>Phase 4</dd><small>Phase 5 closed: SkillCorner not adopted (D52); frozen</small></div>
   </dl>
 
   <nav role="tablist">
@@ -626,6 +626,32 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
         </div></li>
       <li><time>15 Nov 2026</time><h3>Team name corrected: Expected Value FC <span class="pill done">done</span></h3>
         <p>Our registered team name is <b>Expected Value FC</b>, not OffsideFC. It has been changed everywhere: files are now <code>ExpectedValueFC.csv</code> / <code>ExpectedValueFC.pdf</code> (no spaces, as the scorer names leaderboard rows after the file), and the repository is renamed to <code>github.com/Spyyy004/expectedvaluefc-possession</code>. The predictions are untouched (SHA-1 7fe033d5…).</p></li>
+      <li><time>15 Nov 2026</time><h3>Phase 5 #1: SkillCorner open data as extra training matches (your idea: "why can't we add more matches?") <span class="pill done">prepared</span></h3>
+        <p>Scripts: <code>analysis/skillcorner_parse.py</code>, <code>analysis/29_sc_transfer.py</code>. The dataset has grown to <b>20 A-League matches</b> (MIT licence): broadcast tracking at 10 fps with the ball, plus SkillCorner's automatic "phases of play". Rule: a change is adopted only on a paired win on the existing 10-match bench; the scoreboard itself does not change.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Labels from phases, not from the per-frame field:</b> the phase team agrees with SkillCorner's own on-ball events 98.5% of the time, their per-frame <code>possession.group</code> only 87%. Gaps between phases of 3 s or more are stoppages (the tracking says "nobody in possession" on 74–95% of those frames); zero-length gaps with a team change are turnovers in play (~1.5 per minute). Shorter gaps (4 per match) keep the previous team.</li>
+            <li><b>Made to fit our shape:</b> 10 fps → 25 fps by interpolation (gaps stay gaps), metres from the corner on a 105 × 68 pitch, ball kept only where SkillCorner detected it (so the blackouts are real: 40% missing vs our 41%), players include SkillCorner's extrapolated positions (16.6 per frame vs our 20.5).</li>
+            <li><b>Transfer check (match 1874553): 0 of 77 features flagged.</b> The degraded SkillCorner data behaves like our tracking.</li>
+            <li><b>Label check:</b> the current system, trained on DFL + Metrica only, scores <b>spellF1 0.52</b> on SkillCorner's labels (baseline 0.27), in the same range as on Metrica (0.60) and Bundesliga (0.48). The two definitions of possession broadly agree. SkillCorner's possessions are longer than our predictions (248 true vs 313 predicted).</li>
+            <li><b>Full set (20 matches, 40 halves):</b> transfer check still 0 of 77 flagged; current system scores 0.49 on SkillCorner's labels (baseline 0.23).</li>
+          </ul>
+        </div></li>
+      <li><time>15 Nov 2026</time><h3>Phase 5 #2: SkillCorner added to training: three variants, all lose <span class="pill wait">not adopted (D52)</span></h3>
+        <p>Script: <code>analysis/30_sc_training.py</code>. Leave-one-match-out on the 10-match bench; for each held-out match the models are trained on the other 9 plus all 20 SkillCorner matches. Paired deltas vs the current system (spellF1):</p>
+        <div class="finding">
+          <table>
+            <tr><th>Variant</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th><th>Predicted possessions (Metrica)</th></tr>
+            <tr><td>team model only</td><td>−0.017 (0/3)</td><td>−0.024 (1/7)</td><td>−0.022, p = 0.02</td><td>725 vs 785 now (871 true)</td></tr>
+            <tr><td>both models</td><td>−0.013 (0/3)</td><td>−0.027 (1/7)</td><td>−0.023, p = 0.02</td><td>708</td></tr>
+            <tr><td>team only, SkillCorner down-weighted to the 10 matches' total</td><td>−0.008 (1/3)</td><td>−0.021 (0/7)</td><td>−0.017, p = 0.02</td><td>717</td></tr>
+          </table>
+          <ul>
+            <li><b>Not the label style:</b> SkillCorner's labels are almost identical to Metrica's in density (24.0 vs 23.1 possessions per 5 live minutes, median 7.4 vs 7.2 s; Bundesliga 41.5 / 3.7 s).</li>
+            <li><b>Likely the tracking:</b> broadcast tracking sees ~12 players, the other ~10 are SkillCorner's estimated positions, and the 10 fps motion is interpolated. Feature medians match ours (the transfer check passes) but the team clues are less sharp around turnovers, so the model learns to trust them less and the referee switches team less often: fewer possessions, more swallowed short ones. Halving SkillCorner's weight halves the damage, which says the signal is harmful rather than merely diluting.</li>
+            <li><b>Lesson for the document:</b> more data from a different kind of tracking does not help; the bottleneck is not data volume but tracking that looks like ours, with labels on it.</li>
+          </ul>
+        </div></li>
     </ol>
   </section>
 
@@ -787,6 +813,9 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <article><h3><span class="id">D51</span>No "lean judge"; the system is frozen for 13 Nov</h3>
         <p>We stop experimenting; <code>submissions/ExpectedValueFC.csv</code> stays at SHA-1 7fe033d5….</p>
         <p class="why">Why: even a perfect lean judge adds +0.001 (Phase 4 #6). The real room (+0.17 on Metrica if every short miss were fixed) needs a new short-window team model, which cannot be built and fairly tested before the freeze. Agreed with you, 12 Nov.</p></article>
+      <article><h3><span class="id">D52</span>SkillCorner open data is not used for training</h3>
+        <p><code>analysis/skillcorner_parse.py</code> and the loader in <code>bench.py</code> stay in the repository as a tested idea; <code>make_submission.py</code> still trains on the 10 DFL + Metrica matches. Submission unchanged (SHA-1 7fe033d5…).</p>
+        <p class="why">Why: all three variants lose on both benches (Metrica −0.008 to −0.017, Bundesliga −0.021 to −0.027, 9 of 10 matches worse, p = 0.02), although its labels match Metrica's style and the transfer check passes. Broadcast tracking with estimated player positions teaches the team model to hesitate at turnovers (Phase 5 #2).</p></article>
     </div>
   </section>
 
@@ -973,6 +1002,8 @@ BROADCAST CAMERA (TV feed, own timeline, not synced): same file types, parked</p
       <div class="term"><dt>Flickering<span class="star">★</span></dt><dd>Our answer switching between teams for a few frames when nothing changed on the pitch. <span class="eg">An Athletic player jogs past the Barça player on the ball, is 10 cm closer for 3 frames, and "nearest player" hands Athletic the ball: H H H A A H H turns 1 possession into 3.</span> Cheap on macroF1, very expensive on spellF1. The trick is telling a real brief win of the ball from a player jogging past.</dd></div>
       <div class="term"><dt>Convergence attractor (inferred ball)</dt><dd>A guess of where the ball is, made only from where the players are running: the point that all running directions point at best. <span class="eg">If six players sprint towards the same spot, the ball is probably there.</span> Tested 8 Nov: lands ~19 m from the real ball, no better than the centroid, because defenders chase the ball while attackers run into space.</dd></div>
       <div class="term"><dt>Centroid</dt><dd>The average position of a group of players (their centre of mass). Used as the dumb baseline any clever ball-guess must beat.</dd></div>
+      <div class="term"><dt>Phases of play (SkillCorner)</dt><dd>SkillCorner's automatic split of a match into stretches (build-up, progression, chances…), each with the team in possession, defined only while the ball is in play. We read them as labels: team = the phase's team, dead = a gap of 2 s or more between phases.</dd></div>
+      <div class="term"><dt>Transfer check</dt><dd>A label-free test: does each feature have the same distribution on the external data as on our match? A feature that behaves differently would mislead the model on our match.</dd></div>
       <div class="term"><dt>Fragmentation</dt><dd>Breaking one real possession into several predicted ones. The number-one enemy of spellF1: one wrong frame turns 1 possession into 3.</dd></div>
       <div class="term"><dt>Abstention (X) and forward-fill<span class="star">★</span></dt><dd>macroF1 counts X as wrong. spellF1 first replaces each X with your previous label. <span class="eg">So X inside a possession is free; X across a hand-over drags the old team past the change.</span></dd></div>
       <div class="term"><dt>Confusion matrix</dt><dd>A table with the true answer on each row and what we said on each column. The diagonal is what we got right; everything else shows exactly which mistake we make. <span class="eg">Row "truly D", column "we said H" = dead balls we called Barça possession.</span></dd></div>
