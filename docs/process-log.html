@@ -360,8 +360,8 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
             <li><b>Not acted on:</b> the report shows changes about 0.4 s late; correcting that from the public window would be tuning on answers. Any timing fix will be measured on the bench.</li>
           </ul>
         </div></li>
-      <li><time>6 Nov 2026</time><h3>Team name recorded: OffsideFC</h3>
-        <p>The pipeline now writes <code>submissions/OffsideFC.csv</code>; the document will be <code>OffsideFC.pdf</code> (SUBMISSION.md naming rule).</p></li>
+      <li><time>6 Nov 2026</time><h3>Team name recorded: Expected Value FC</h3>
+        <p>The pipeline now writes <code>submissions/ExpectedValueFC.csv</code>; the document will be <code>ExpectedValueFC.pdf</code> (SUBMISSION.md naming rule).</p></li>
       <li><time>6 Nov 2026</time><h3>Step 9c: touch-event clues for interceptions <span class="pill wait">no gain, not kept</span></h3>
         <p>Scripts: <code>touch_features()</code> in <code>analysis/features.py</code>, <code>analysis/11_touches.py</code>. Judged on the realistic bench (1 m jitter) with everything retrained on it.</p>
         <div class="finding">
@@ -429,7 +429,7 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
           <ul>
             <li><b>Dress rehearsal:</b> trained on the 7 Bundesliga matches only, the model scores spellF1 <b>0.537</b> on Metrica (never seen), predicting 842 possessions vs 871 true.</li>
             <li><b>10-match training (each match tested by a model that never saw it):</b> Metrica 0.537 → <b>0.577</b> (+0.040); Bundesliga 0.450 → 0.441 (−0.009, within noise). Metrica weighted more because it matches our ground truth's style. Your call, 6 Nov.</li>
-            <li><b>OffsideFC.csv rebuilt</b> with 10-match training: 277 possessions, mean 12.2 s, Barça 62% of live time; valid; byte-reproducible (SHA-1 97efac02…). Old v1 files removed.</li>
+            <li><b>ExpectedValueFC.csv rebuilt</b> with 10-match training: 277 possessions, mean 12.2 s, Barça 62% of live time; valid; byte-reproducible (SHA-1 97efac02…). Old v1 files removed.</li>
           </ul>
         </div></li>
       <li><time>6 Nov 2026</time><h3>Full scorecard, every official metric <span class="pill done">done</span></h3>
@@ -468,7 +468,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Fix:</b> Bundesliga blackouts now cover ~79% of each stoppage (ball lost soon after play stops, found just before the restart) plus separate live gaps up to 16% (our gap lengths). Result 78.9% / 16.2% / 4.9×; 44% missing overall (ours 41%). Uses external data only.</li>
             <li><b>Metrica scoreboard (identical games):</b> spellF1 0.577 → <b>0.601</b>; macroF1 0.759 → 0.785; live/dead F1 0.846 → 0.860 (now beats the baseline's 0.848); dead-ball F1 0.714 → 0.756; changes within 1 s 0.455 → 0.483.</li>
             <li><b>Trap check passed better than before:</b> blackout lengths 6.3/12.1/22.5 s on the bench vs 6.1/10.7/21.1 s on our match.</li>
-            <li><b>OffsideFC.csv rebuilt:</b> 274 possessions, mean 13.1 s, Barça 62% of live time; 35% of graded frames dead (was 47%); valid; byte-reproducible (SHA-1 33b8face…).</li>
+            <li><b>ExpectedValueFC.csv rebuilt:</b> 274 possessions, mean 13.1 s, Barça 62% of live time; 35% of graded frames dead (was 47%); valid; byte-reproducible (SHA-1 33b8face…).</li>
           </ul>
         </div></li>
       <li><time>6 Nov 2026</time><h3>D18 settled: "X when unsure" vs "always guess" <span class="pill done">always guess (D40)</span></h3>
@@ -483,7 +483,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <li><time>6 Nov 2026</time><h3>Wrote an expert review brief</h3>
         <p><code>docs/expert_review_brief.md</code>: problem, rules, metrics, validation design, full pipeline, exact current scorecard (Metrica spellF1 0.601, macroF1 0.785; Bundesliga 0.491 / 0.856), error diagnosis, failed ideas, limitations and 8 questions for an external ML expert. Aggregate figures only, no match data.</p></li>
       <li><time>6 Nov 2026</time><h3>Expert feedback received; fallback frozen</h3>
-        <p>Summary in <code>docs/expert_feedback_2026-11-06.md</code>. Current file frozen as <code>submissions/fallback_2026-11-06_OffsideFC.csv</code> (SHA-1 33b8face…).</p>
+        <p>Summary in <code>docs/expert_feedback_2026-11-06.md</code>. Current file frozen as <code>submissions/fallback_2026-11-06_ExpectedValueFC.csv</code> (SHA-1 33b8face…).</p>
         <div class="finding">
           <ul>
             <li><b>Critique accepted:</b> our primary scoreboard is 3 matches with labels we derived ourselves, so 0.601 partly measures our own rule; decisions on 0.001–0.024 differences need <b>per-match paired deltas with a bootstrap or sign test</b>; our Bundesliga blackouts are independent of game state (real ones cluster at duels and aerials).</li>
@@ -510,7 +510,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Why players get the wrong team:</b> automatic tracking detects people, links them frame to frame, then assigns teams mainly by shirt colour. Errors come from identity switches when players cross and from colour confusion. Your observation: Athletic wore their lilac away kit, and Barça's garnet-and-blue halves blur to purple from a wide camera, so both kits sit in the purple family. Plausible, not provable.</li>
             <li><b>Simulation:</b> one visible player's positions move to the other team for episodes drawn from our tracking's lengths (median 2.6 s). Only about half of episodes are detectable (players missing anyway), so the simulated share is scaled until the bench shows the same detectable share: 10.7% vs our 10.8%.</li>
             <li><b>Fair test (both scored on the bench with mix-ups):</b> Metrica +0.0105, 3/3 wins, 90% CI [+0.005, +0.016]; Bundesliga +0.0037, 4/7; all +0.0058, 7/10, CI [+0.002, +0.009]; macroF1 +0.001 (8/10). Mix-ups cost the old model about 0.016 on Metrica; training with them wins back about two-thirds.</li>
-            <li><b>OffsideFC.csv rebuilt:</b> valid, byte-reproducible (SHA-1 7fe033d5…). 249 possessions (was 274), mean 14.2 s, Barça 62%. More conservative switching: watch for under-segmentation; the semi-Markov decoder is next.</li>
+            <li><b>ExpectedValueFC.csv rebuilt:</b> valid, byte-reproducible (SHA-1 7fe033d5…). 249 possessions (was 274), mean 14.2 s, Barça 62%. More conservative switching: watch for under-segmentation; the semi-Markov decoder is next.</li>
             <li><b>Rules reminder:</b> a screenshot from the provided broadcast video was shared with Claude. The terms forbid sharing video or extracts with AI services; describe what you see in words instead. Only the public kit colours were used.</li>
           </ul>
         </div></li>
@@ -544,7 +544,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
           </ul>
         </div></li>
       <li><time>6 Nov 2026</time><h3>Phase 3: public repo created <span class="pill done">live</span></h3>
-        <p><b>https://github.com/Spyyy004/offsidefc-possession</b> (public, account Spyyy004 at your request; nothing was ever created on AyushPawar004). First commit d5e6109.</p>
+        <p><b>https://github.com/Spyyy004/expectedvaluefc-possession</b> (public, account Spyyy004 at your request; nothing was ever created on AyushPawar004). First commit d5e6109.</p>
         <div class="finding">
           <ul>
             <li><b>Contents (53 files, 2.1 MB):</b> <code>make_submission.py</code> (one command), <code>fetch_external.py</code> (downloads and checksum-verifies IDSSE and Metrica data, then parses), <code>analysis/</code> (all modules and experiments 01–22), <code>docs/</code> (process log, rules, glossary, expert brief and feedback), organisers' <code>games.py</code>, scorer and baseline (MIT, LICENSE-organisers), pinned <code>requirements.txt</code>, README with expected SHA-1, data credits and a rules-compliance statement, MIT licence.</li>
@@ -553,7 +553,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
           </ul>
         </div></li>
       <li><time>6 Nov 2026</time><h3>Phase 3: technical document drafted <span class="pill next">draft for your review</span></h3>
-        <p>Source <code>docs/technical_document.md</code>; builder <code>docs/build_pdf.py</code> (reportlab 5.1.0); output <code>submissions/OffsideFC.pdf</code> (4 A4 pages, git-ignored).</p>
+        <p>Source <code>docs/technical_document.md</code>; builder <code>docs/build_pdf.py</code> (reportlab 5.1.0); output <code>submissions/ExpectedValueFC.pdf</code> (4 A4 pages, git-ignored).</p>
         <div class="finding">
           <ul>
             <li><b>Sections</b> (as SUBMISSION.md asks): summary; approach and why; assets used and dropped; training data (sources, who labelled, how much; none from the provided game); possession rules; missing and noisy tracking; validation and results with a per-match table; tested-but-not-adopted ideas; diagnostic ceilings; limitations; reproduction and data credits.</li>
@@ -624,6 +624,8 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Decision (D51):</b> no lean judge. With the freeze on 13 Nov, a new team model cannot be built and fairly tested in time. The corrected error breakdown went into the technical document's Limitations section, and the PDF was rebuilt.</li>
           </ul>
         </div></li>
+      <li><time>15 Nov 2026</time><h3>Team name corrected: Expected Value FC <span class="pill done">done</span></h3>
+        <p>Our registered team name is <b>Expected Value FC</b>, not OffsideFC. It has been changed everywhere: files are now <code>ExpectedValueFC.csv</code> / <code>ExpectedValueFC.pdf</code> (no spaces, as the scorer names leaderboard rows after the file), and the repository is renamed to <code>github.com/Spyyy004/expectedvaluefc-possession</code>. The predictions are untouched (SHA-1 7fe033d5…).</p></li>
     </ol>
   </section>
 
@@ -783,7 +785,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
         <p>Short possessions swallowed by a stoppage we called (22% of short misses on Metrica) stay as they are.</p>
         <p class="why">Why: the cases split four ways (before / between / after stoppages, open play), Metrica and Bundesliga disagree on which dominates, and the largest group is the last-touch case D48 already lost on (Phase 4 #4).</p></article>
       <article><h3><span class="id">D51</span>No "lean judge"; the system is frozen for 13 Nov</h3>
-        <p>We stop experimenting; <code>submissions/OffsideFC.csv</code> stays at SHA-1 7fe033d5….</p>
+        <p>We stop experimenting; <code>submissions/ExpectedValueFC.csv</code> stays at SHA-1 7fe033d5….</p>
         <p class="why">Why: even a perfect lean judge adds +0.001 (Phase 4 #6). The real room (+0.17 on Metrica if every short miss were fixed) needs a new short-window team model, which cannot be built and fairly tested before the freeze. Agreed with you, 12 Nov.</p></article>
     </div>
   </section>

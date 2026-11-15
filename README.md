@@ -1,8 +1,8 @@
-# OffsideFC — More than a Hack 2027, Phase 1: Ball Possession
+# Expected Value FC — More than a Hack 2027, Phase 1: Ball Possession
 
 Frame-level ball possession for **FC Barcelona vs Athletic Club** (LaLiga 2024-25): one label per
 tactical-video frame — `H` (home in possession), `A` (away in possession), `D` (dead ball) — from
-the provided automatic tracking only. Team **OffsideFC**.
+the provided automatic tracking only. Team **Expected Value FC**.
 
 ## Reproduce the submission
 
@@ -15,11 +15,11 @@ pip install -r requirements.txt                          # pinned versions
 # 2. External training data (open; downloaded and checksum-verified, ~2.8 GB):
 python fetch_external.py
 # 3. Build the submission (~1-2 minutes, deterministic):
-python make_submission.py                                # -> submissions/OffsideFC.csv
-python evaluation/validate_submission.py submissions/OffsideFC.csv
+python make_submission.py                                # -> submissions/ExpectedValueFC.csv
+python evaluation/validate_submission.py submissions/ExpectedValueFC.csv
 ```
 
-Expected output: `submissions/OffsideFC.csv`, 199,319 rows,
+Expected output: `submissions/ExpectedValueFC.csv`, 199,319 rows,
 SHA-1 `7fe033d5ae8253c0c07ad736b95d0c4d1edb12e9`. The result is byte-identical across runs and
 across processor thread counts (checked with `OMP_NUM_THREADS=1` vs 10 threads).
 

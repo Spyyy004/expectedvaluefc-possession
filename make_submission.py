@@ -1,6 +1,6 @@
 """Produce our possession submission for BAR-ATH, end to end, from the provided data.
 
-    python make_submission.py                       # writes submissions/OffsideFC.csv
+    python make_submission.py                       # writes submissions/ExpectedValueFC.csv
     python make_submission.py --out other.csv
 
 Pipeline (see docs/possession_rules.md and docs/process-log.html):
@@ -102,7 +102,7 @@ def apply_goal_rule(h, p_dead):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     # SUBMISSION.md: name the file after the team.
-    parser.add_argument("--out", default=os.path.join(ROOT, "submissions", "OffsideFC.csv"))
+    parser.add_argument("--out", default=os.path.join(ROOT, "submissions", "ExpectedValueFC.csv"))
     args = parser.parse_args()
     t0 = time.time()
 

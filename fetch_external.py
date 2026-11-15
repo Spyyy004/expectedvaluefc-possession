@@ -33,7 +33,7 @@ METRICA_FILES = [
     "data/Sample_Game_3/Sample_Game_3_metadata.xml",
     "data/Sample_Game_3/Sample_Game_3_tracking.txt",
 ]
-HEADERS = {"User-Agent": "offsidefc-possession/1.0"}
+HEADERS = {"User-Agent": "expectedvaluefc-possession/1.0"}
 
 
 def md5(path):

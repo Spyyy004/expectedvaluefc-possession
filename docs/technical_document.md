@@ -1,8 +1,8 @@
-# OffsideFC - Technical Document
+# Expected Value FC - Technical Document
 
 ## More than a Hack 2027, Phase 1: Ball Possession
 
-Team: **OffsideFC** | Match: FC Barcelona vs Athletic Club, LaLiga 2024-25 | Code: **github.com/Spyyy004/offsidefc-possession** | Submission: `OffsideFC.csv` (SHA-1 `7fe033d5ae8253c0c07ad736b95d0c4d1edb12e9`)
+Team: **Expected Value FC** | Match: FC Barcelona vs Athletic Club, LaLiga 2024-25 | Code: **github.com/Spyyy004/expectedvaluefc-possession** | Submission: `ExpectedValueFC.csv` (SHA-1 `7fe033d5ae8253c0c07ad736b95d0c4d1edb12e9`)
 
 ## 1. Summary
 
@@ -103,13 +103,13 @@ Bundesliga labels count many brief "touch" possessions (30% under 2 s) that a co
 ## 9. Reproduction
 
 ```
-git clone https://github.com/Spyyy004/offsidefc-possession && cd offsidefc-possession
+git clone https://github.com/Spyyy004/expectedvaluefc-possession && cd expectedvaluefc-possession
 python3 -m venv .venv && source .venv/bin/activate      # Python 3.14.3
 pip install -r requirements.txt                           # numpy 2.5.4, pandas 3.1.1, scikit-learn 1.9.1
 # put the provided match data in data/ (or set MTAH_DATA_DIR)
 python fetch_external.py                                  # downloads, verifies and parses external data
-python make_submission.py                                 # -> submissions/OffsideFC.csv (~1-2 min)
-python evaluation/validate_submission.py submissions/OffsideFC.csv
+python make_submission.py                                 # -> submissions/ExpectedValueFC.csv (~1-2 min)
+python evaluation/validate_submission.py submissions/ExpectedValueFC.csv
 ```
 
 The output is deterministic and byte-identical across runs and processor thread counts. Every experiment behind this document is in `analysis/` (scripts 01-22), and every decision with its evidence is in `docs/process-log.html` (D1-D48).

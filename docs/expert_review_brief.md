@@ -1,4 +1,4 @@
-# Expert review brief — Team OffsideFC, More than a Hack 2027 (Phase 1: Ball Possession)
+# Expert review brief — Team Expected Value FC, More than a Hack 2027 (Phase 1: Ball Possession)
 
 *Prepared 6 Nov 2026 for an external ML review. Deadline for the competition: **17 Nov 2026**.*
 *Everything here is aggregate description; no match data is included. Please do not paste this
@@ -233,7 +233,7 @@ Learning curve (team model, 2 / 4 / 6 training matches): 0.427 / 0.435 / 0.450 �
 ## 11. Reproducibility snapshot
 
 - Python 3.14.3; numpy 2.5.4, pandas 3.1.1, scikit-learn 1.9.1 (pinned in `requirements-ours.txt`).
-- One command: `python make_submission.py` → `submissions/OffsideFC.csv` (≈1 min, deterministic,
+- One command: `python make_submission.py` → `submissions/ExpectedValueFC.csv` (≈1 min, deterministic,
   SHA-1 33b8facee8501d242cb0ae279198fd1be6e39ea2).
 - Experiment scripts: `analysis/01_…` to `analysis/17_…`; full decision log (D1–D40) in
   `docs/process-log.html`; possession rules in `docs/possession_rules.md`.

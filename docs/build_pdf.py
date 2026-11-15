@@ -1,4 +1,4 @@
-"""Render docs/technical_document.md to OffsideFC.pdf with reportlab (simple Markdown subset:
+"""Render docs/technical_document.md to ExpectedValueFC.pdf with reportlab (simple Markdown subset:
 #/##/### headings, paragraphs, '- ' and '1. ' lists, | tables |, ``` code blocks, **bold**, `code`).
 
     python docs/build_pdf.py [output.pdf]
@@ -17,7 +17,7 @@ from reportlab.platypus import (ListFlowable, ListItem, Paragraph, Preformatted,
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "technical_document.md")
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "submissions", "OffsideFC.pdf")
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(HERE), "submissions", "ExpectedValueFC.pdf")
 
 GREEN = colors.HexColor("#1f6b45")
 LINE = colors.HexColor("#c9d3cc")
@@ -72,7 +72,7 @@ def build():
     lines = open(SRC, encoding="utf-8").read().splitlines()
     doc = SimpleDocTemplate(OUT, pagesize=A4, leftMargin=17 * mm, rightMargin=17 * mm,
                             topMargin=15 * mm, bottomMargin=15 * mm,
-                            title="OffsideFC - Technical Document", author="OffsideFC")
+                            title="Expected Value FC - Technical Document", author="Expected Value FC")
     width = A4[0] - 34 * mm
     story, i = [], 0
     while i < len(lines):
@@ -119,7 +119,7 @@ def build():
         canvas.saveState()
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(colors.grey)
-        canvas.drawString(17 * mm, 9 * mm, "OffsideFC - More than a Hack 2027, Phase 1: Ball Possession")
+        canvas.drawString(17 * mm, 9 * mm, "Expected Value FC - More than a Hack 2027, Phase 1: Ball Possession")
         canvas.drawRightString(A4[0] - 17 * mm, 9 * mm, "page {}".format(d.page))
         canvas.restoreState()
 
