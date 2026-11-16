@@ -149,7 +149,7 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
     <div><dt>Deadline</dt><dd id="days">17 Nov</dd><small>Submission form closes 17 Nov 2026</small></div>
     <div><dt>Score to beat</dt><dd>0.2433</dd><small>spellF1, baseline_smooth50</small></div>
     <div><dt>Our best</dt><dd>0.609</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.262)</small></div>
-    <div><dt>Now on</dt><dd>Phase 6</dd><small>Referee re-tuned (D53), submission a4c65f9c…; final checks 16 Nov</small></div>
+    <div><dt>Now on</dt><dd>Phase 6</dd><small>Referee re-tuned (D53) + kick-off rule (D55); submission 2e238b15…</small></div>
   </dl>
 
   <nav role="tablist">
@@ -687,6 +687,38 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Takeaway:</b> the short-possession problem does not yield to re-weighting the same features; the model needs different evidence, not a different emphasis. The seed-noise figure now sits in the technical document as the bench's resolution.</li>
           </ul>
         </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 6 #3: scouting the other public repositories (your idea) <span class="pill done">done</span></h3>
+        <p>GitHub search over repository names and READMEs plus the organisers' fork list. About 445 public repositories exist (305 forks of the organisers' repo, ~140 independent ones), so the field is several hundred teams. Most READMEs are the organisers' text untouched; roughly 20 report their own numbers. Nothing from any other repository was copied: approaches and numbers only.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Repo (team)</th><th>Public 5 min spellF1 / macroF1</th><th>Own external bench</th><th>What stands out</th></tr>
+            <tr><td>nathangalung (BYTZ)</td><td>0.667 / 0.926</td><td>0.671 on 20 SkillCorner matches</td><td>GRU sequence net, 5 seeds x 8 mirrored views; broadcast ball aligned by cross-correlation fills 13% of tactical gaps; broadcast cutaways as stoppage clue; kick-off rule</td></tr>
+            <tr><td>hadisotudeh</td><td>0.607 / 0.896</td><td>0.729 on 4 held-out SkillCorner</td><td>Trained on SkillCorner only; Viterbi; fixed kick-off policy</td></tr>
+            <tr><td><b>Expected Value FC (us)</b></td><td><b>0.547 / 0.793</b></td><td>0.609 Metrica / 0.490 Bundesliga</td><td>two boosted judges + 4-state HMM referee; 10 external matches</td></tr>
+            <tr><td>whard2205</td><td>0.520 / 0.657</td><td></td><td>sticky state machine</td></tr>
+            <tr><td>aditwidi (Nexus)</td><td>0.494 / 0.807</td><td></td><td>Viterbi</td></tr>
+            <tr><td>ragavendran-matra, khalifasimboro, riberii, novo, NaufalFahrozi, radouane99</td><td>0.49 to 0.35</td><td></td><td>HMM/Viterbi variants, some LightGBM/LSTM</td></tr>
+            <tr><td>Derekko-web (Anfield)</td><td>not reported</td><td>0.72 (own control-relabelled DFL/SkillCorner holdout)</td><td>XGBoost + two player-set temporal nets, 162 features, 3 context windows; two model sets averaged; DFL relabelled to "controlled" possession (3 s rule); kick-off rule</td></tr>
+            <tr><td>AndriesDKock (Mes que data)</td><td>not reported</td><td>0.624 held-out Metrica + DFL, 40 degraded copies</td><td>two-stage auto-context models; touch features +0.035; broadcast ball fills gaps; minimum-Bayes-risk decoding; same "rule fixed in advance" discipline as ours</td></tr>
+            <tr><td>RaulHerreroM (Overfitting FC)</td><td>not reported</td><td>Metrica 0.634, DFL 0.583</td><td>ball detector on the tactical video (trained with ATD ball as labels); touches; window network</td></tr>
+            <tr><td>pranshu-nautiyal, prithvi-kaizen, fcb10har1</td><td>not reported</td><td>0.71 (proxy labels), 0.59, 0.59</td><td>LightGBM stacks, player-motion fusion</td></tr>
+          </table>
+          <ul>
+            <li><b>Where we stand:</b> on the public 5 minutes we are third or fourth of about twelve teams that report it; the two above us use sequence networks and the broadcast feed. External numbers are not comparable across teams (different benches, different label definitions).</li>
+            <li><b>What the strongest teams share that we do not have:</b> the broadcast tracking's ball aligned to the tactical timeline to fill ball gaps (two teams), a ball detector on the video (one team), DFL labels rewritten to the controlled-possession definition before training (two teams), touch features, and <b>a kick-off rule</b> (two teams). The last one is cheap and checkable: see #4.</li>
+            <li><b>Everyone</b> uses a Viterbi/HMM decoder and the DFL open data; most add Metrica, many add SkillCorner (which lost for us, D52, but helped teams with other model types).</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 6 #4: kick-off rule: no possession before the ball is struck <span class="pill done">adopted (D55)</span></h3>
+        <p>Prompted by #3. The organisers' <code>games.py</code> publishes kick-off anchors ("the ball is struck on this frame"). The first half's graded block starts at its anchor; the second half's block starts <b>117 s (2,933 frames) before</b> its anchor, during warm-up and line-up, and our system labelled 63 s of that as possession: <b>9 warm-up "possessions"</b> out of 241.</p>
+        <div class="finding">
+          <ul>
+            <li><b>Is the anchor right?</b> Three independent signals say yes. (1) Tracking aggregates, 10 s bins: in the 10 s before the anchor both sides have 10.7 / 10.9 players on their own half and the ball is seen on 1% of frames (lined up, ball at the referee); the bins after show play (ball seen 89-100%, moving 9-10 m/s). (2) The first Smart Tagging phase of the second half starts at frame 113,660, 81 frames before the anchor, and nothing is tagged in the 117 s before. (3) Two of the top repositories apply the same rule from the same anchors.</li>
+            <li><b>Rule:</b> <code>apply_kickoff_rule</code> in <code>make_submission.py</code> sets P(dead) = 0.999 from the block start to the anchor, exactly like the goal rule; the referee then decodes as usual. Half 1: 1 frame. Half 2: 2,933 frames.</li>
+            <li><b>Effect:</b> 1,576 frames change (0.79%), all inside that window; 233 possessions instead of 241, mean 14.6 s. Nothing else moves; the public 5 minutes are in the first half and unaffected. Cannot be tested on the bench (external matches start at kick-off), so it is justified by metadata and evidence, like the goal rule. Validator passes. New SHA-1 <code>2e238b15…</code>; the referee-only file is kept as <code>fallback_2026-11-15_ExpectedValueFC.csv</code>.</li>
+            <li><b>Rules check:</b> uses organiser metadata and the provided tracking only; no ground truth, no video, no hand labels.</li>
+          </ul>
+        </div></li>
     </ol>
   </section>
 
@@ -857,6 +889,9 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <article><h3><span class="id">D54</span>No turnover weighting and no model averaging</h3>
         <p>The team model stays a single model trained with equal weights. <code>analysis/32_turnover_weight.py</code> stays as a tested idea.</p>
         <p class="why">Why: all five weighting variants land inside the bench's seed noise (±0.003 on the mean); model averaging failed the adoption rule fixed before the run and loses under the re-tuned referee (Phase 6 #2).</p></article>
+      <article><h3><span class="id">D55</span>Kick-off rule: graded frames before a half's kick-off anchor are dead</h3>
+        <p><code>apply_kickoff_rule</code> in <code>make_submission.py</code>, from the organisers' anchors in <code>games.py</code>. Submission rebuilt (SHA-1 2e238b15…); the referee-only file stays as a fallback.</p>
+        <p class="why">Why: the second half's graded block starts 117 s before the ball is struck and we were predicting 9 possessions in the warm-up. The anchor is confirmed by the tracking (lined-up sides, ball out of view) and by the Smart Tagging (first phase 81 frames before it). Same class of rule as the goal rule (Phase 6 #4).</p></article>
     </div>
   </section>
 

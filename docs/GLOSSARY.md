@@ -392,3 +392,8 @@ already at the best spot for it.
 Training the same model on the same data with a different random seed gives a slightly different
 model. On our bench that alone moves a single match by up to 0.01 spellF1 and the 10-match mean by
 about 0.003. Any "improvement" smaller than that cannot be told from luck (Phase 6 #2).
+
+**Kick-off anchor**
+The video frame on which the ball is struck to start a half, published by the organisers in
+games.py. The graded block of the second half starts 117 s before its anchor (warm-up and line-up),
+so our kick-off rule (D55) labels those frames dead: no possession exists before the ball is in play.

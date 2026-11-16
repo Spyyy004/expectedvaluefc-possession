@@ -29,7 +29,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
-from games import half_video_blocks, source_frames  # noqa: E402
+from games import GAMES, anchor_video_frame, half_video_blocks, source_frames  # noqa: E402
 from analysis.atd_arrays import load_arrays  # noqa: E402
 from analysis.bench import bench, our_mess_profile, BENCH_JITTER  # noqa: E402
 from analysis.features import (dead_ball_features, team_features, turnover_features,  # noqa: E402
@@ -99,6 +99,22 @@ def apply_goal_rule(h, p_dead):
     return p, n_goals
 
 
+def apply_kickoff_rule(h, p_dead):
+    """No possession before the kick-off (D55).
+
+    The graded block of a half can start before the ball is struck: the second half's block begins
+    117 s before the organisers' kick-off anchor in games.py, while the players warm up and line up.
+    The anchor is organiser metadata ("the ball is struck on this frame"), and the tracking agrees
+    (both sides balanced and the ball out of view just before it, play after it). Frames from the
+    block start up to the anchor become dead, exactly as the goal rule forces dead through a goal.
+    """
+    anchor = GAMES[GAME]["kickoff" if h["half"] == 1 else "kickoff_2nd"]
+    n = max(0, min(anchor_video_frame(anchor) - h["first"], len(p_dead)))
+    p = p_dead.copy()
+    p[:n] = 0.999
+    return p, n
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     # SUBMISSION.md: name the file after the team.
@@ -114,9 +130,10 @@ def main():
     for h in our_halves():
         p_dead = dead_model.predict_proba(dead_X(h).to_numpy())[:, 1]
         p_dead, n_goals = apply_goal_rule(h, p_dead)
+        p_dead, n_pre = apply_kickoff_rule(h, p_dead)
         p_home = team_model.predict_proba(team_X(h).to_numpy())[:, 1]
         labels[h["first"]:h["last"] + 1] = viterbi(p_dead, p_home, **REFEREE_SETTINGS)
-        print("  half {}: goal-rule blackouts {}".format(h["half"], n_goals), flush=True)
+        print("  half {}: goal-rule blackouts {}, pre-kick-off frames forced dead {}".format(h["half"], n_goals, n_pre), flush=True)
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w") as f:

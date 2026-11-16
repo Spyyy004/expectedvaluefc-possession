@@ -8,7 +8,7 @@ Team: **Expected Value FC** | Match: FC Barcelona vs Athletic Club, LaLiga 2024-
 
 We label every frame of the tactical video as `H`, `A` or `D` with a three-layer system built only from the provided automatic tracking: football features per frame, two gradient-boosted tree classifiers (dead ball; home vs away), and a hidden Markov "match-flow referee" decoded with Viterbi. Because the rules forbid training or tuning on the provided game, **every model and setting was trained and chosen on external data**: 7 Bundesliga matches (IDSSE/DFL) and 3 Metrica sample games, deliberately degraded to look like the provided automatic tracking. Every change was judged per match with the official scoring code.
 
-On our external test bench (each match predicted by models that never saw it), the final system scores **spellF1 0.609 on the Metrica games** (baseline 0.262) and **0.490 on the Bundesliga matches** (baseline 0.203), beating the organisers' baseline on all 10 matches. On the provided match it predicts 241 possessions (mean 14.3 s), with Barcelona holding the ball 62% of live time.
+On our external test bench (each match predicted by models that never saw it), the final system scores **spellF1 0.609 on the Metrica games** (baseline 0.262) and **0.490 on the Bundesliga matches** (baseline 0.203), beating the organisers' baseline on all 10 matches. On the provided match it predicts 233 possessions (mean 14.6 s), with Barcelona holding the ball 62% of live time.
 
 ## 2. Approach and why
 
@@ -20,6 +20,7 @@ The ranking metric (spellF1) scores whole possessions, so the central problem is
 | 2. Frame judges | `HistGradientBoostingClassifier` (300 iterations, learning rate 0.1): P(dead) on all frames; P(home) on live frames | Strong on tabular data, fast, deterministic, works with ~10 matches; deep models would need far more data |
 | 3. Referee | 4-state HMM (home, away, dead-after-home, dead-after-away), Viterbi; switch cost 20, stop cost 80, restart cost 2 (other team) / 5 (same team), team-evidence weight 3 | Turns noisy per-frame evidence into stable possessions; stoppages and restarts are explicit states |
 | Rule | A ball blackout longer than 15 s ending on the centre spot is a goal stoppage | Goal celebrations make the tracker lose the ball; all 4 such blackouts coincide with tagged kick-offs |
+| Rule | Graded frames before a half's kick-off are dead ball | The second half's graded block starts 117 s before the organisers' published kick-off anchor (`games.py`), during warm-up and line-up; the tracking shows balanced sides and the ball out of view just before the anchor, and the first Smart Tagging phase of the half starts 81 frames before it. Removes 8 warm-up "possessions" |
 
 **Most useful features.** Dead ball: players' mean speed (now, 1/3/6 s windows, next 3 s), share of players walking, ball just went out, ball blackout length, gap between team centroids (kick-offs). Team: team width difference over 3 s, block moving forward, nearest home vs away player over the last 3 s, team speed difference, close control (player within 1.5 m) before and after, receptions, controller changes, shape flips. The attacking direction of each team is inferred per half from team centroids; no constant is tied to a frame of the match.
 
@@ -115,6 +116,6 @@ python make_submission.py                                 # -> submissions/Expec
 python evaluation/validate_submission.py submissions/ExpectedValueFC.csv
 ```
 
-The output is deterministic and byte-identical across runs and processor thread counts. Every experiment behind this document is in `analysis/` (scripts 01-32), and every decision with its evidence is in `docs/process-log.html` (D1-D54).
+The output is deterministic and byte-identical across runs and processor thread counts. Every experiment behind this document is in `analysis/` (scripts 01-32), and every decision with its evidence is in `docs/process-log.html` (D1-D55).
 
 **Data credits.** IDSSE: Bassek, M., Rein, R., Weber, H. & Memmert, D. (2025), An integrated dataset of spatiotemporal and event data in elite soccer, Scientific Data, figshare DOI 10.6084/m9.figshare.28196177, CC-BY 4.0, with authorisation of the DFL. Metrica Sports open sample data, github.com/metrica-sports/sample-data.
