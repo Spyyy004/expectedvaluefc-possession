@@ -19,9 +19,13 @@ import numpy as np
 H, A, DH, DA = 0, 1, 2, 3
 EPS = 1e-4
 
-# Chosen in Step 8b by nested leave-one-match-out on the Bundesliga bench (D27): picked by all 7
-# folds in round 2; round 3 confirmed a plateau. Order: switch, stop, restart_other, restart_same, beta.
-REFEREE_SETTINGS = dict(switch=10, stop=160, restart_other=5, restart_same=5, beta=2.0)
+# First chosen in Step 8b by nested leave-one-match-out on the Bundesliga bench alone (D27:
+# switch 10, stop 160, restarts 5/5, beta 2). Re-tuned on 15 Nov (Phase 6 #1, D53) by the same nested
+# protocol on the full 10-match bench (7 Bundesliga + 3 Metrica, current degradation): 6/10 folds
+# picked this setting in both a 675-point grid and a widened 193-point grid around it; nested gain
+# +0.006 spellF1 (9/10 matches, sign-test p = 0.02), and the gain holds for team models trained with
+# other random seeds (+0.004 to +0.009, 8-9/10). Order: switch, stop, restart_other, restart_same, beta.
+REFEREE_SETTINGS = dict(switch=20, stop=80, restart_other=2, restart_same=5, beta=3.0)
 
 
 def viterbi(p_dead, p_home, switch, stop, restart_other, restart_same, beta=1.0):

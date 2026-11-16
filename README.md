@@ -20,7 +20,7 @@ python evaluation/validate_submission.py submissions/ExpectedValueFC.csv
 ```
 
 Expected output: `submissions/ExpectedValueFC.csv`, 199,319 rows,
-SHA-1 `7fe033d5ae8253c0c07ad736b95d0c4d1edb12e9`. The result is byte-identical across runs and
+SHA-1 `a4c65f9c8d37d58ae86eaeada1b5476768988f61`. The result is byte-identical across runs and
 across processor thread counts (checked with `OMP_NUM_THREADS=1` vs 10 threads).
 
 ## Method in one screen
@@ -46,8 +46,8 @@ calibrated from tracking statistics or external data only.
 
 **Validation:** leave-one-match-out over the 10 external matches, settings chosen by nested
 leave-one-match-out, every change judged per match with the official scoring code
-(`evaluation/possession_metrics.py`). Current system: spellF1 **0.595** on the Metrica games
-(organisers' baseline 0.265) and **0.483** on the Bundesliga matches (baseline 0.155), on the
+(`evaluation/possession_metrics.py`). Current system: spellF1 **0.609** on the Metrica games
+(organisers' baseline 0.265) and **0.490** on the Bundesliga matches (baseline 0.155), on the
 realistic bench with wrong-team episodes.
 
 Full details: `docs/possession_rules.md` (the football rules), `docs/process-log.html` (every step,

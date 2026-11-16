@@ -5,6 +5,7 @@ data/*
 
 # External datasets (downloaded by fetch_external.py; licensed separately, cited not redistributed)
 external/
+external
 
 # Generated submissions and scorer output (a full set of labels for the match)
 submissions/

@@ -377,3 +377,18 @@ Gaps in the original stay gaps.
 A test without labels: compare how every feature is distributed on the external data against our
 match. If a feature behaves very differently (e.g. twice as frequent), a model trained on it will
 misfire on our match. Phase 5 #1: 0 of 77 features flagged for SkillCorner.
+
+**Sample weight (training)**
+A number per training example saying how much it counts in the loss. Weight 3 on the frames of
+short possessions makes the model pay three times as much attention to getting them right, at the
+cost of a little accuracy on the long, easy ones. Phase 6 #2 tests this for the team model.
+
+**Sensitivity (one-at-a-time)**
+Changing one referee setting while all the others stay as they are, and watching the score. A flat
+line means the setting does not matter much; a line that peaks at the current value means we are
+already at the best spot for it.
+
+**Seed noise**
+Training the same model on the same data with a different random seed gives a slightly different
+model. On our bench that alone moves a single match by up to 0.01 spellF1 and the 10-match mean by
+about 0.003. Any "improvement" smaller than that cannot be told from luck (Phase 6 #2).

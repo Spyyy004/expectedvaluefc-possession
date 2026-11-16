@@ -148,8 +148,8 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
   <dl class="board">
     <div><dt>Deadline</dt><dd id="days">17 Nov</dd><small>Submission form closes 17 Nov 2026</small></div>
     <div><dt>Score to beat</dt><dd>0.2433</dd><small>spellF1, baseline_smooth50</small></div>
-    <div><dt>Our best</dt><dd>0.601</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.265)</small></div>
-    <div><dt>Now on</dt><dd>Phase 4</dd><small>Phase 5 closed: SkillCorner not adopted (D52); frozen</small></div>
+    <div><dt>Our best</dt><dd>0.609</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.262)</small></div>
+    <div><dt>Now on</dt><dd>Phase 6</dd><small>Referee re-tuned (D53), submission a4c65f9c…; final checks 16 Nov</small></div>
   </dl>
 
   <nav role="tablist">
@@ -652,6 +652,41 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Lesson for the document:</b> more data from a different kind of tracking does not help; the bottleneck is not data volume but tracking that looks like ours, with labels on it.</li>
           </ul>
         </div></li>
+      <li><time>15 Nov 2026</time><h3>Phase 6 #1: referee re-tuned on the full 10-match bench <span class="pill done">adopted (D53)</span></h3>
+        <p>Script: <code>analysis/31_referee_retune.py</code>. The referee's five costs were chosen on 8 Nov on the 7 Bundesliga matches alone, before Metrica, stoppage-linked blackouts, wrong-team episodes and jitter joined the bench. Same nested leave-one-match-out protocol as then, now on all 10 matches with the frozen system's cached probabilities: for each held-out match the best setting on the other 9 is applied to it.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Setting</th><th>switch</th><th>stop</th><th>restart (other / same)</th><th>team weight β</th></tr>
+            <tr><td>since 8 Nov (D27)</td><td>10</td><td>160</td><td>5 / 5</td><td>2</td></tr>
+            <tr><td><b>re-tuned (D53)</b></td><td><b>20</b></td><td><b>80</b></td><td><b>2 / 5</b></td><td><b>3</b></td></tr>
+          </table>
+          <ul>
+            <li><b>Nested result:</b> +0.006 spellF1 over the 10 matches, <b>9 of 10 matches better</b> (sign test p = 0.02, 90% CI +0.003 to +0.009); Metrica +0.010 (3/3), Bundesliga +0.004 (6/7). macroF1 unchanged.</li>
+            <li><b>Stable pick:</b> 6 of 10 folds chose exactly this setting in a 675-point grid; the pick sat on the grid's edge, so a second, widened grid (193 points: switch up to 40, stop down to 40, restart down to 1, β up to 5) was run and the same 6 folds picked the same point, now interior.</li>
+            <li><b>Not a fit to one model:</b> the same setting wins on team models trained with three other random seeds (+0.004 to +0.009, 8 or 9 of 10 matches, CI above zero each time).</li>
+            <li><b>What it means in football terms:</b> a change of possession in open play now costs twice as much (fewer spurious flips), a stoppage costs half as much (stoppages are called more readily), the usual restart-to-the-other-team is cheaper, and the team model's opinion is trusted more. Fewer predicted possessions (745 vs 785 on Metrica, 871 true), each more often right.</li>
+            <li><b>On our match:</b> 1.0% of frames change; 241 possessions instead of 249, 94 stoppages instead of 85, Barcelona share unchanged (62%). Validator passes. New SHA-1 <code>a4c65f9c…</code>; the 13 Nov file is kept as <code>fallback_2026-11-13_ExpectedValueFC.csv</code> (7fe033d5…).</li>
+            <li><b>Public 5 minutes, looked at once, not acted on (D2):</b> spellF1 0.55 / macroF1 0.79, down from 0.58 / 0.90. Inside that window the only change is 80 frames (3.2 s) moved from a team to dead, one extra stoppage. With 17 true possessions and very few dead frames in that stretch, one call swings both numbers; the decision stands on 10 full matches.</li>
+          </ul>
+        </div></li>
+      <li><time>15 Nov 2026</time><h3>Phase 6 #2: turnover-weighted training and model averaging <span class="pill wait">not adopted (D54)</span></h3>
+        <p>Script: <code>analysis/32_turnover_weight.py</code>. Idea: the team model trains on every live frame with equal weight, so long easy possessions dominate and the short ones we miss barely count. Five pre-specified variants gave the frames of short possessions (under 5 s) or the first seconds after each change of possession (3 s or 5 s) 2x, 3x or 6x weight. Leave-one-match-out as always, referee unchanged.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Variant</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th></tr>
+            <tr><td>short &lt; 5 s, x3</td><td>−0.008 (0/3)</td><td>+0.009 (6/7)</td><td>+0.004 (6/10)</td></tr>
+            <tr><td>short &lt; 5 s, x6</td><td>−0.025 (0/3)</td><td>+0.009 (5/7)</td><td>−0.001</td></tr>
+            <tr><td>first 3 s, x3</td><td>+0.003 (2/3)</td><td>+0.008 (5/7)</td><td>+0.006 (7/10)</td></tr>
+            <tr><td>first 3 s, x2</td><td>+0.008 (2/3)</td><td>+0.003 (3/7)</td><td>+0.004 (5/10)</td></tr>
+            <tr><td>first 5 s, x3</td><td>+0.012 (2/3)</td><td>−0.000 (2/7)</td><td>+0.003 (4/10)</td></tr>
+            <tr><td><i>control: same model, different random seed, no weighting</i></td><td>+0.000</td><td>−0.005 (1/7)</td><td>−0.003 (2/10)</td></tr>
+          </table>
+          <ul>
+            <li><b>Seed noise sets the resolution:</b> retraining the current model with another seed moves single matches by up to ±0.011 and the mean by 0.003. Every weighted variant's mean (−0.001 to +0.006) sits inside that, while single matches swing ±0.02 to ±0.04 between variants and even change sign for the same variant with another seed. No dose-response: x2, x3 and 5 s do not line up.</li>
+            <li><b>Averaging models</b> (a post-hoc idea, so held to a rule fixed before the run: adopt only if Metrica gains at least +0.007 on 3/3 and Bundesliga is not below −0.003): averaging the current model with the edge-weighted one gave Metrica +0.012 (3/3) but Bundesliga +0.003 (4/7); averaging two plain seeds already gave Metrica +0.007, so most of that is averaging, not the weighting. A 4-seed average gave Metrica +0.0045 (2/3) and failed the rule; under the re-tuned referee every average lost (−0.002 to −0.003). Re-tuning the referee on the averaged probabilities gave nothing either (+0.001, folds disagree).</li>
+            <li><b>Takeaway:</b> the short-possession problem does not yield to re-weighting the same features; the model needs different evidence, not a different emphasis. The seed-noise figure now sits in the technical document as the bench's resolution.</li>
+          </ul>
+        </div></li>
     </ol>
   </section>
 
@@ -816,6 +851,12 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <article><h3><span class="id">D52</span>SkillCorner open data is not used for training</h3>
         <p><code>analysis/skillcorner_parse.py</code> and the loader in <code>bench.py</code> stay in the repository as a tested idea; <code>make_submission.py</code> still trains on the 10 DFL + Metrica matches. Submission unchanged (SHA-1 7fe033d5…).</p>
         <p class="why">Why: all three variants lose on both benches (Metrica −0.008 to −0.017, Bundesliga −0.021 to −0.027, 9 of 10 matches worse, p = 0.02), although its labels match Metrica's style and the transfer check passes. Broadcast tracking with estimated player positions teaches the team model to hesitate at turnovers (Phase 5 #2).</p></article>
+      <article><h3><span class="id">D53</span>Referee re-tuned on the full bench: switch 20, stop 80, restarts 2/5, β 3</h3>
+        <p>Replaces the 8 Nov setting (D27: 10, 160, 5/5, 2) in <code>analysis/referee.py</code>. The submission is rebuilt (SHA-1 a4c65f9c…); the 13 Nov file stays as a fallback.</p>
+        <p class="why">Why: nested leave-one-match-out on all 10 matches, +0.006 spellF1, 9 of 10 matches better (p = 0.02), 6 of 10 folds agree on the point in two grid rounds, and the gain holds for team models trained with other seeds. The old setting was chosen before Metrica and the realistic noise joined the bench (Phase 6 #1).</p></article>
+      <article><h3><span class="id">D54</span>No turnover weighting and no model averaging</h3>
+        <p>The team model stays a single model trained with equal weights. <code>analysis/32_turnover_weight.py</code> stays as a tested idea.</p>
+        <p class="why">Why: all five weighting variants land inside the bench's seed noise (±0.003 on the mean); model averaging failed the adoption rule fixed before the run and loses under the re-tuned referee (Phase 6 #2).</p></article>
     </div>
   </section>
 
@@ -833,6 +874,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
         <li><b>14–16 Nov:</b> nothing new. Public repo, fresh-clone reproduction, technical document with a per-match variance table.</li>
         <li><b>17 Nov:</b> submit. Fallback file kept throughout.</li>
       </ul>
+      <p><b>Update 15 Nov:</b> the freeze was lifted for two cheap, pre-specified tests (Phase 6). The referee re-tune was adopted (D53); turnover weighting was not (D54). 16 Nov: fresh-clone reproduction of the new file, final read of the document, form fields ready.</p>
     </div>
     <p class="lead">Original plan below, kept for the record.</p>
     <div class="flow"><pre>HOW WE BUILD IT
@@ -1003,6 +1045,8 @@ BROADCAST CAMERA (TV feed, own timeline, not synced): same file types, parked</p
       <div class="term"><dt>Convergence attractor (inferred ball)</dt><dd>A guess of where the ball is, made only from where the players are running: the point that all running directions point at best. <span class="eg">If six players sprint towards the same spot, the ball is probably there.</span> Tested 8 Nov: lands ~19 m from the real ball, no better than the centroid, because defenders chase the ball while attackers run into space.</dd></div>
       <div class="term"><dt>Centroid</dt><dd>The average position of a group of players (their centre of mass). Used as the dumb baseline any clever ball-guess must beat.</dd></div>
       <div class="term"><dt>Phases of play (SkillCorner)</dt><dd>SkillCorner's automatic split of a match into stretches (build-up, progression, chances…), each with the team in possession, defined only while the ball is in play. We read them as labels: team = the phase's team, dead = a gap of 2 s or more between phases.</dd></div>
+      <div class="term"><dt>Seed noise</dt><dd>Training the same model on the same data with a different random seed gives a slightly different model. On our bench that alone moves one match by up to 0.01 spellF1 and the 10-match mean by about 0.003: anything smaller cannot be told from luck.</dd></div>
+      <div class="term"><dt>Sample weight</dt><dd>A number per training example saying how much it counts. Weight 3 on short possessions makes the model try three times as hard on them, at some cost on the long easy ones.</dd></div>
       <div class="term"><dt>Transfer check</dt><dd>A label-free test: does each feature have the same distribution on the external data as on our match? A feature that behaves differently would mislead the model on our match.</dd></div>
       <div class="term"><dt>Fragmentation</dt><dd>Breaking one real possession into several predicted ones. The number-one enemy of spellF1: one wrong frame turns 1 possession into 3.</dd></div>
       <div class="term"><dt>Abstention (X) and forward-fill<span class="star">★</span></dt><dd>macroF1 counts X as wrong. spellF1 first replaces each X with your previous label. <span class="eg">So X inside a possession is free; X across a hand-over drags the old team past the change.</span></dd></div>

@@ -8,7 +8,7 @@ Team: **Expected Value FC** | Match: FC Barcelona vs Athletic Club, LaLiga 2024-
 
 We label every frame of the tactical video as `H`, `A` or `D` with a three-layer system built only from the provided automatic tracking: football features per frame, two gradient-boosted tree classifiers (dead ball; home vs away), and a hidden Markov "match-flow referee" decoded with Viterbi. Because the rules forbid training or tuning on the provided game, **every model and setting was trained and chosen on external data**: 7 Bundesliga matches (IDSSE/DFL) and 3 Metrica sample games, deliberately degraded to look like the provided automatic tracking. Every change was judged per match with the official scoring code.
 
-On our external test bench (each match predicted by models that never saw it), the final system scores **spellF1 0.595 on the Metrica games** (baseline 0.262) and **0.483 on the Bundesliga matches** (baseline 0.203), beating the organisers' baseline on all 10 matches. On the provided match it predicts 249 possessions (mean 14.2 s), with Barcelona holding the ball 62% of live time.
+On our external test bench (each match predicted by models that never saw it), the final system scores **spellF1 0.609 on the Metrica games** (baseline 0.262) and **0.490 on the Bundesliga matches** (baseline 0.203), beating the organisers' baseline on all 10 matches. On the provided match it predicts 241 possessions (mean 14.3 s), with Barcelona holding the ball 62% of live time.
 
 ## 2. Approach and why
 
@@ -18,7 +18,7 @@ The ranking metric (spellF1) scores whole possessions, so the central problem is
 |---|---|---|
 | 1. Features | ~75 football features per frame from tracking, using past and future windows (offline labelling) | Interpretable, and each one can be checked for transfer to our match |
 | 2. Frame judges | `HistGradientBoostingClassifier` (300 iterations, learning rate 0.1): P(dead) on all frames; P(home) on live frames | Strong on tabular data, fast, deterministic, works with ~10 matches; deep models would need far more data |
-| 3. Referee | 4-state HMM (home, away, dead-after-home, dead-after-away), Viterbi; switch cost 10, stop cost 160, restart costs 5, team-evidence weight 2 | Turns noisy per-frame evidence into stable possessions; stoppages and restarts are explicit states |
+| 3. Referee | 4-state HMM (home, away, dead-after-home, dead-after-away), Viterbi; switch cost 20, stop cost 80, restart cost 2 (other team) / 5 (same team), team-evidence weight 3 | Turns noisy per-frame evidence into stable possessions; stoppages and restarts are explicit states |
 | Rule | A ball blackout longer than 15 s ending on the centre spot is a goal stoppage | Goal celebrations make the tracker lose the ball; all 4 such blackouts coincide with tagged kick-offs |
 
 **Most useful features.** Dead ball: players' mean speed (now, 1/3/6 s windows, next 3 s), share of players walking, ball just went out, ball blackout length, gap between team centroids (kick-offs). Team: team width difference over 3 s, block moving forward, nearest home vs away player over the last 3 s, team speed difference, close control (player within 1.5 m) before and after, receptions, controller changes, shape flips. The attacking direction of each team is inferred per half from team centroids; no constant is tied to a frame of the match.
@@ -71,24 +71,26 @@ The provided tracking is the main difficulty: the ball is missing on 41% of grad
 
 | Match | Baseline spellF1 | **Our spellF1** | Baseline macroF1 | Our macroF1 | Possessions ours / true |
 |---|---|---|---|---|---|
-| Metrica game 1 | 0.280 | **0.600** | 0.675 | 0.799 | 264 / 277 |
-| Metrica game 2 | 0.278 | **0.590** | 0.692 | 0.769 | 243 / 276 |
-| Metrica game 3 | 0.234 | **0.595** | 0.656 | 0.781 | 278 / 318 |
-| Koln - Bayern | 0.196 | **0.427** | 0.662 | 0.850 | 273 / 511 |
-| Bochum - Leverkusen | 0.211 | **0.458** | 0.647 | 0.832 | 315 / 500 |
-| Dusseldorf - Regensburg | 0.198 | **0.506** | 0.643 | 0.846 | 284 / 402 |
-| Dusseldorf - Rostock | 0.197 | **0.489** | 0.638 | 0.851 | 300 / 456 |
-| Dusseldorf - Nurnberg | 0.209 | **0.488** | 0.662 | 0.869 | 270 / 421 |
-| Dusseldorf - St. Pauli | 0.218 | **0.529** | 0.664 | 0.865 | 307 / 401 |
-| Dusseldorf - Kaiserslautern | 0.194 | **0.494** | 0.657 | 0.849 | 273 / 370 |
-| **Metrica (pooled)** | 0.262 | **0.595** | 0.676 | 0.785 | |
-| **Bundesliga (pooled)** | 0.203 | **0.483** | 0.657 | 0.855 | |
+| Metrica game 1 | 0.280 | **0.603** | 0.675 | 0.796 | 256 / 277 |
+| Metrica game 2 | 0.278 | **0.607** | 0.692 | 0.765 | 223 / 276 |
+| Metrica game 3 | 0.234 | **0.617** | 0.656 | 0.782 | 258 / 318 |
+| Koln - Bayern | 0.196 | **0.429** | 0.662 | 0.853 | 269 / 511 |
+| Bochum - Leverkusen | 0.211 | **0.467** | 0.647 | 0.831 | 297 / 500 |
+| Dusseldorf - Regensburg | 0.198 | **0.502** | 0.643 | 0.848 | 279 / 402 |
+| Dusseldorf - Rostock | 0.197 | **0.508** | 0.638 | 0.858 | 296 / 456 |
+| Dusseldorf - Nurnberg | 0.209 | **0.499** | 0.662 | 0.870 | 266 / 421 |
+| Dusseldorf - St. Pauli | 0.218 | **0.537** | 0.664 | 0.864 | 303 / 401 |
+| Dusseldorf - Kaiserslautern | 0.194 | **0.496** | 0.657 | 0.846 | 265 / 370 |
+| **Metrica (pooled)** | 0.262 | **0.609** | 0.676 | 0.783 | |
+| **Bundesliga (pooled)** | 0.203 | **0.490** | 0.657 | 0.856 | |
+
+Referee settings were re-tuned on 15 Nov by nested leave-one-match-out on this bench (the original settings came from the 7 Bundesliga matches alone): 6 of 10 folds chose the same setting in two grid rounds, the nested gain is +0.006 spellF1 (9 of 10 matches, sign test p = 0.02), and it holds for team models trained with four different random seeds. The table applies the chosen setting to every match, so it is slightly optimistic by about 0.003 versus the nested estimate. Training-seed noise alone moves a single match by up to ±0.01 and the 10-match mean by about ±0.003, which is the resolution of this bench.
 
 Bundesliga labels count many brief "touch" possessions (30% under 2 s) that a control-based definition does not, which is why scores are lower there and our possession counts are below the truth.
 
-**What each step contributed** (spellF1): dead-ball detector +0.07 and team judge +0.14 over the baseline on the Bundesliga bench; HMM referee +0.02; turnover features +0.02 under realistic noise; Metrica in training +0.04 on Metrica; stoppage-linked blackouts +0.024 on Metrica; wrong-team robustness +0.010 on Metrica (3/3 matches).
+**What each step contributed** (spellF1): dead-ball detector +0.07 and team judge +0.14 over the baseline on the Bundesliga bench; HMM referee +0.02; turnover features +0.02 under realistic noise; Metrica in training +0.04 on Metrica; stoppage-linked blackouts +0.024 on Metrica; wrong-team robustness +0.010 on Metrica (3/3 matches); referee re-tuned on the full bench +0.006 (9/10 matches).
 
-**Tested and not adopted** (all with nested leave-one-match-out): location-of-blackout features; per-frame change-moment costs; touch-event features; larger models; time shifts; training on control-style converted labels (lost on 10/10 matches); X abstention; a duration-aware semi-Markov decoder (no gain on Metrica); team-velocity crossing features (+0.027 on Bundesliga but nothing on Metrica, and twice as frequent there as in our match); a last-touch-before-out rule (lost on 10/10); an inferred ball from where the players are running ("convergence attractor": 18.7 m median error on Metrica, no better than the players' centroid, and worse than the last-seen clue for the team call); **20 more training matches from SkillCorner's open data** (A-League 2024-25, MIT licence, broadcast tracking at 10 fps upsampled to 25, labels derived by us from SkillCorner's automatic phases of play). Its label style matches Metrica's (24 vs 23 possessions per 5 live minutes) and every feature's distribution matches our match, yet adding it to training lost on 9 of 10 bench matches (Metrica −0.008 to −0.017, Bundesliga −0.021 to −0.027 spellF1, three weighting variants). Broadcast tracking, with about ten of the 22 players' positions estimated rather than seen, teaches the team model to hesitate at turnovers. More data of a different kind of tracking did not help; data volume is not our bottleneck.
+**Tested and not adopted** (all with nested leave-one-match-out): location-of-blackout features; per-frame change-moment costs; touch-event features; larger models; time shifts; training on control-style converted labels (lost on 10/10 matches); X abstention; a duration-aware semi-Markov decoder (no gain on Metrica); team-velocity crossing features (+0.027 on Bundesliga but nothing on Metrica, and twice as frequent there as in our match); a last-touch-before-out rule (lost on 10/10); an inferred ball from where the players are running ("convergence attractor": 18.7 m median error on Metrica, no better than the players' centroid, and worse than the last-seen clue for the team call); **20 more training matches from SkillCorner's open data** (A-League 2024-25, MIT licence, broadcast tracking at 10 fps upsampled to 25, labels derived by us from SkillCorner's automatic phases of play). Its label style matches Metrica's (24 vs 23 possessions per 5 live minutes) and every feature's distribution matches our match, yet adding it to training lost on 9 of 10 bench matches (Metrica −0.008 to −0.017, Bundesliga −0.021 to −0.027 spellF1, three weighting variants). Broadcast tracking, with about ten of the 22 players' positions estimated rather than seen, teaches the team model to hesitate at turnovers. More data of a different kind of tracking did not help; data volume is not our bottleneck. **Turnover-weighted training** of the team model (extra weight on short possessions or on the first seconds after each change of possession, five variants) moved the mean by −0.001 to +0.006, inside the seed noise of the bench, with single matches swinging ±0.02 to ±0.04 between variants; **averaging several team models** (two to four seeds, with or without the weighting) gained +0.005 to +0.016 on Metrica but nothing on Bundesliga, failed a pre-set adoption rule, and lost under the re-tuned referee.
 
 **Diagnostic ceilings.** Perfect per-frame evidence through our referee gives 0.998, so the decoder is not the bottleneck. Our evidence with the true boundaries fixed gives 0.744 on Metrica: about 0.14 of the remaining gap is boundary timing and about 0.26 is wrong labels on short possessions.
 
@@ -99,7 +101,7 @@ Bundesliga labels count many brief "touch" possessions (30% under 2 s) that a co
 - **The bench is an approximation.** Synthetic blackouts are placed by game state (dead/live) but not at duels and aerial balls, where real ones cluster. Our match's team movement is calmer than every external match.
 - **Video not used.** Video ball detection was allowed as an input but not used: it could not be validated on any external data available to us (our external matches have no video), and 84% of our short-possession misses occur with the ball tracked.
 - **Small external pool** (10 matches); the learning curve was still rising.
-- The public 5-minute alignment check (spellF1 0.58, macroF1 0.90; best-tracked stretch of the match) hints the test labels may be finer than Metrica's. We did not react to it.
+- The public 5-minute alignment check (spellF1 0.55, macroF1 0.79 for the final file; 0.58 / 0.90 before the referee re-tune, the difference being one 3-second stoppage call in a stretch with very few dead frames; best-tracked stretch of the match) hints the test labels may be finer than Metrica's. We did not react to it: every choice was made on the 10 external matches.
 
 ## 9. Reproduction
 
@@ -113,6 +115,6 @@ python make_submission.py                                 # -> submissions/Expec
 python evaluation/validate_submission.py submissions/ExpectedValueFC.csv
 ```
 
-The output is deterministic and byte-identical across runs and processor thread counts. Every experiment behind this document is in `analysis/` (scripts 01-22), and every decision with its evidence is in `docs/process-log.html` (D1-D48).
+The output is deterministic and byte-identical across runs and processor thread counts. Every experiment behind this document is in `analysis/` (scripts 01-32), and every decision with its evidence is in `docs/process-log.html` (D1-D54).
 
 **Data credits.** IDSSE: Bassek, M., Rein, R., Weber, H. & Memmert, D. (2025), An integrated dataset of spatiotemporal and event data in elite soccer, Scientific Data, figshare DOI 10.6084/m9.figshare.28196177, CC-BY 4.0, with authorisation of the DFL. Metrica Sports open sample data, github.com/metrica-sports/sample-data.
