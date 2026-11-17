@@ -43,7 +43,7 @@ BATCH = int(opts.get("batch", 32))
 LR = float(opts.get("lr", 2e-3))
 DROPOUT = float(opts.get("dropout", 0.2))
 WINDOWS_PER_EPOCH = int(opts.get("wpe", 3000))
-DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+DEVICE = torch.device(opts.get("device", "mps" if torch.backends.mps.is_available() else "cpu"))
 
 DERIVED = os.path.join(ROOT, "external", "idsse", "derived")
 halves, _ = bench(our_mess_profile(), jitter=BENCH_JITTER, sources=("dfl", "metrica"), dead_link=True, wrong_team=True)
@@ -165,3 +165,19 @@ for name, ph in (("GRU judge", p_net), ("average of GRU and boosted", [(a + b) /
                 src, lab, r["spell_f1_mean"], r["macro_f1"], r["n_pred_spells"], r["n_gt_spells"]))
     compare(halves, without, pr, "current", name, metric="spell_f1_mean")
     compare(halves, without, pr, "current", name, metric="macro_f1", verbose=False)
+
+# Against the adopted GRU (tag=base: hidden 64, 12 epochs, 3 seeds; D60), when this run is a variant of it.
+base_cache = os.path.join(DERIVED, "bench_seq_base_probs.npz")
+if TAG != "base" and os.path.exists(base_cache):
+    p_base = list(np.load(base_cache, allow_pickle=True)["h"])
+    pr_base = [viterbi(d, h, **REFEREE_SETTINGS) for d, h in zip(p_dead, p_base)]
+    pr_new = [viterbi(d, h, **REFEREE_SETTINGS) for d, h in zip(p_dead, p_net)]
+    print("\n=== GRU {} vs adopted GRU base ===".format(TAG))
+    for src in ("metrica", "dfl"):
+        ks = [k for k, h in enumerate(halves) if h["source"] == src]
+        for lab, p in (("GRU base", pr_base), ("GRU " + TAG, pr_new)):
+            r = score([halves[k] for k in ks], [p[k] for k in ks])
+            print("   {:8s} {:28s} spellF1 {:.4f}  macroF1 {:.4f}  poss {}/{}".format(
+                src, lab, r["spell_f1_mean"], r["macro_f1"], r["n_pred_spells"], r["n_gt_spells"]))
+    compare(halves, pr_base, pr_new, "GRU base", "GRU " + TAG, metric="spell_f1_mean")
+    compare(halves, pr_base, pr_new, "GRU base", "GRU " + TAG, metric="macro_f1", verbose=False)

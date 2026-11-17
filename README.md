@@ -58,7 +58,7 @@ realistic bench with wrong-team episodes. The GRU team judge (16 Nov) beat the g
 frame judge it replaced on all 10 matches (+0.039 spellF1).
 
 Full details: `docs/possession_rules.md` (the football rules), `docs/process-log.html` (every step,
-decision D1–D60 and result), `docs/GLOSSARY.md`, and the technical document.
+decision D1–D62 and result), `docs/GLOSSARY.md`, and the technical document.
 
 ## Repository layout
 
