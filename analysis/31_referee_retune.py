@@ -58,6 +58,11 @@ MIX = sys.argv[1] if len(sys.argv) > 1 else "current"
 if MIX == "ens":
     e = np.load(os.path.join(DERIVED, "bench_tw_edge3_3_probs.npz"), allow_pickle=True)["h"]
     p_home = [(a + b) / 2 for a, b in zip(p_home, e)]
+elif MIX == "gru":        # Phase 7 #3: the GRU sequence judge alone (bench_seq_base, 3 seeds x 12 epochs)
+    p_home = list(np.load(os.path.join(DERIVED, "bench_seq_base_probs.npz"), allow_pickle=True)["h"])
+elif MIX == "gruavg":     # Phase 7 #3: average of the GRU and the boosted judge
+    e = np.load(os.path.join(DERIVED, "bench_seq_base_probs.npz"), allow_pickle=True)["h"]
+    p_home = [(a + b) / 2 for a, b in zip(p_home, e)]
 print("bench: {} halves, {} matches; grid: {} settings ({}); team probabilities: {}".format(len(halves), len(matches), len(GRID), ROUND, MIX), flush=True)
 
 

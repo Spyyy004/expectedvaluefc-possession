@@ -149,7 +149,7 @@ code { font: .88em var(--mono); background: var(--accent-soft); padding: 1px 5px
     <div><dt>Deadline</dt><dd id="days">17 Nov</dd><small>Submission form closes 17 Nov 2026</small></div>
     <div><dt>Score to beat</dt><dd>0.2433</dd><small>spellF1, baseline_smooth50</small></div>
     <div><dt>Our best</dt><dd>0.609</dd><small>spellF1 on Metrica, our primary scoreboard (baseline 0.262)</small></div>
-    <div><dt>Now on</dt><dd>Phase 6</dd><small>Referee re-tuned (D53) + kick-off rule (D55); submission 2e238b15…</small></div>
+    <div><dt>Now on</dt><dd>Phase 7</dd><small>New submission ce1d5c24… with the GRU team judge (D60); bench 0.639 / 0.533; rebuilds identical; push pending</small></div>
   </dl>
 
   <nav role="tablist">
@@ -706,6 +706,7 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
           <ul>
             <li><b>Where we stand:</b> on the public 5 minutes we are third or fourth of about twelve teams that report it; the two above us use sequence networks and the broadcast feed. External numbers are not comparable across teams (different benches, different label definitions).</li>
             <li><b>What the strongest teams share that we do not have:</b> the broadcast tracking's ball aligned to the tactical timeline to fill ball gaps (two teams), a ball detector on the video (one team), DFL labels rewritten to the controlled-possession definition before training (two teams), touch features, and <b>a kick-off rule</b> (two teams). The last one is cheap and checkable: see #4.</li>
+            <li><b>Committed files scored (your idea, 16 Nov):</b> 21 of 463 repositories commit a finished 199,319-row CSV (66 files, 60 well-formed). Scored with the official scorer on the public 5 minutes, best file per team: Matra 0.849 / 0.956 (ball detector on the tactical video, detections committed), Vltava (sefkuchar) 0.775 / 0.888 (trained on IDSSE only), debjyotydasgupta 0.723 / 0.804 (Kalman ball reconstruction, self-supervised boosted trees + Viterbi), Camgomocod 0.640, NSmonish 0.600 (rule-based, no model), suleyman416 0.571 (rules, no external data), YT-Groups 0.550 (rules), <b>us 0.547 / 0.793</b>, then 11 teams from 0.53 down to 0.26. Together with the self-reported numbers (BYTZ 0.667, hadisotudeh 0.607) we are about 10th of the ~30 teams with a comparable public number. Caveats: 17 possessions, bootstrap band about ±0.3; the public window is the best-tracked stretch of the match, where rule-based nearest-player systems look far better than they will over the 41% of frames without a ball. Nothing from these files is used anywhere.</li>
             <li><b>Everyone</b> uses a Viterbi/HMM decoder and the DFL open data; most add Metrica, many add SkillCorner (which lost for us, D52, but helped teams with other model types).</li>
           </ul>
         </div></li>
@@ -717,6 +718,113 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
             <li><b>Rule:</b> <code>apply_kickoff_rule</code> in <code>make_submission.py</code> sets P(dead) = 0.999 from the block start to the anchor, exactly like the goal rule; the referee then decodes as usual. Half 1: 1 frame. Half 2: 2,933 frames.</li>
             <li><b>Effect:</b> 1,576 frames change (0.79%), all inside that window; 233 possessions instead of 241, mean 14.6 s. Nothing else moves; the public 5 minutes are in the first half and unaffected. Cannot be tested on the bench (external matches start at kick-off), so it is justified by metadata and evidence, like the goal rule. Validator passes. New SHA-1 <code>2e238b15…</code>; the referee-only file is kept as <code>fallback_2026-11-15_ExpectedValueFC.csv</code>.</li>
             <li><b>Rules check:</b> uses organiser metadata and the provided tracking only; no ground truth, no video, no hand labels.</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 6 #5: the broadcast ball, aligned and simulated <span class="pill wait">not adopted (D56)</span></h3>
+        <p>The one borrowable idea from the scouting that fits in a day. The broadcast recording has its own tracking and its own ball, on its own clock. Scripts: <code>analysis/34_broadcast_align.py</code> (alignment on our match) and <code>analysis/33_broadcast_fill.py</code> (bench simulation).</p>
+        <div class="finding">
+          <table>
+            <tr><th></th><th>Half 1</th><th>Half 2</th></tr>
+            <tr><td>Lag found by sliding the ball tracks (broadcast = tactical − lag)</td><td>4,014 frames</td><td>26,920 frames</td></tr>
+            <tr><td>Median disagreement where both see the ball</td><td>0.78 m</td><td>0.83 m</td></tr>
+            <tr><td>Within 2 m</td><td>74%</td><td>71%</td></tr>
+            <tr><td>Missing tactical ball the broadcast can fill (valid homography only)</td><td>12%</td><td>13%</td></tr>
+          </table>
+          <ul>
+            <li><b>Alignment works</b> and reproduces BYTZ's published lags exactly, found independently. Ball missing would drop from 40.7% to 35.6% of graded frames. The parser in <code>atd_arrays.py</code> now accepts the broadcast file's 51 slots (tactical arrays re-parsed and checked identical).</li>
+            <li><b>Bench simulation:</b> the same fill (13% of hidden live frames, contiguous 1-10 s spans, 0.6 m noise) on the Bundesliga matches where the hidden ball is known; only the team model sees the filled ball. Retrained: <b>+0.0015</b> spellF1 over 10 matches (6/10, CI −0.002 to +0.005); Metrica (unfillable control) +0.001. Current model fed the filled ball: +0.0011 (5/10). Both inside the 0.003 seed noise.</li>
+            <li><b>Why so little:</b> the same reason as before (Phase 4 #5): 84% of our short-possession misses happen with the ball tracked. Giving back one eighth of the missing ball changes almost nothing. BYTZ's gain from the broadcast came mostly from cutaway timing as a stoppage clue and a different model family, not from the ball alone.</li>
+            <li><b>Decision (D56):</b> not used. The alignment is documented in the technical document as a tested idea because it is the first thing we would build on with more time.</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 7 #1: two-stage "auto-context" team judge <span class="pill wait">not adopted (D57)</span></h3>
+        <p>Submission frozen at 2e238b15… (your call, 16 Nov); Phase 7 is the ambitious-ideas phase, ranked by effort against likely gain (sequence network, learned ball imputer, broadcast cutaways, video ball detector). First and cheapest: Mes que data's stage 2. Script: <code>analysis/35_auto_context.py</code>. A second judge reads the first judge's out-of-fold probabilities over ±1, ±3 and ±10 s (mean, min, max, past/future trend) plus ball visibility, and re-predicts P(home); P(dead) and the referee unchanged. Quick screen with a small leak in stage 2's favour (stage-1 probabilities of the training matches came from models that saw the held-out match).</p>
+        <div class="finding">
+          <table>
+            <tr><th>Variant</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th><th>Predicted possessions (Metrica, 871 true)</th></tr>
+            <tr><td>stage 2 alone</td><td>−0.008 (0/3)</td><td>−0.007 (1/7)</td><td>−0.007, p = 0.02</td><td>700 vs 737</td></tr>
+            <tr><td>average of stage 1 and 2</td><td>+0.001 (2/3)</td><td>+0.001 (3/7)</td><td>+0.001</td><td>713</td></tr>
+          </table>
+          <ul>
+            <li><b>Why it fails:</b> wider context smooths. Stage 2 predicts fewer possessions than stage 1, so it erases short possessions rather than recovering them, which is the opposite of our gap (Phase 4 #5). Even with the leak it loses, so the strict nested version was not run.</li>
+            <li><b>Lesson for the remaining ideas:</b> the short-possession fix must add <i>sharper</i> evidence at the moment of the turnover (a better ball, touch geometry, a model that reads the frame sequence itself), not more averaging of the same evidence.</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 7 #2: a learned ball imputer <span class="pill wait">not adopted (D58)</span></h3>
+        <p>Script: <code>analysis/36_ball_imputer.py</code>. A gradient-boosted regressor predicts the ball (x, y) on blackout frames from 60 clues: player geometry per team (centroids, spread, bounding boxes, where the block is heading), the densest cluster of players, the fastest player and their heading, the old attractor, and the ball's last and next sightings with the time to each. Trained on the hidden live frames of the degraded Bundesliga matches, where the hidden ball is known; leave-one-match-out.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Ball guess on hidden live frames (89,489 frames)</th><th>Median error</th><th>Within 5 m</th><th>Within 10 m</th><th>Nearest team = true team</th></tr>
+            <tr><td><b>learned</b></td><td><b>8.3 m</b></td><td>25%</td><td>61%</td><td>48%</td></tr>
+            <tr><td>straight line between last and next sighting</td><td>13.6 m</td><td>19%</td><td>38%</td><td>53%</td></tr>
+            <tr><td>players' centroid</td><td>19.6 m</td><td>3%</td><td>13%</td><td></td></tr>
+            <tr><td>attractor (D49)</td><td>19.6 m</td><td>3%</td><td>13%</td><td>43%</td></tr>
+            <tr><td><i>the TRUE ball (ceiling of the proxy)</i></td><td>0</td><td></td><td></td><td>73% (55% on possessions under 5 s)</td></tr>
+          </table>
+          <ul>
+            <li><b>As a ball guess it is the best we have</b>, and the only method under 10 m deep inside long blackouts (10 m at 10+ s from any sighting, where interpolation is 25 m off). A variant predicting the correction to the interpolation was slightly worse (9.0 m); the final version uses interpolation within 1 s of a sighting and the model elsewhere.</li>
+            <li><b>Ceiling check:</b> even the true ball names the possession team by "nearest player" on only 73% of blackout frames, and on possessions under 5 s it is a coin flip (Bundesliga labels count touches the nearest player does not reveal). An 8 m guess reaches 48%, no better than interpolation.</li>
+            <li><b>Downstream bench</b> (imputed ball given to the team judge on every hidden live frame, imputer trained without the held-out match, judge retrained leave-one-match-out): <b>−0.012 spellF1 over 10 matches, 2 wins</b>; Metrica −0.022 (0/3), Bundesliga −0.007 (2/7). A wrong ball presented as a real one is worse than an honest "missing": the judge already handles gaps with explicit last-seen / next-seen clues and knows to be unsure, and the fake ball takes that away.</li>
+            <li><b>Lesson:</b> third piece of evidence in a row (broadcast fill D56, auto-context D57, imputer D58) that the ball and the context are not where our points are. If an imputed ball is ever used, it must come with its own uncertainty as a feature, not replace the missing-ball signal.</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 7 #3: a sequence network as the team judge <span class="pill done">confirmed: +0.039, 10/10</span></h3>
+        <p>Taken ahead of the broadcast cutaways (roadmap idea 3) because D56–D58 all say the judge, not the ball or the stoppages, is where our points are. Script: <code>analysis/37_sequence_judge.py</code>. A bidirectional GRU (two layers of 64 units) reads the same 58 team-judge features, standardised with a missing-flag per feature, over 20-second windows, and predicts home vs away per live frame; dead model and referee unchanged. Leave-one-match-out on the 10 matches, windows sampled at random each epoch, sliding-window inference. PyTorch 2.15 on the laptop's Apple GPU; one judge trains in about 2.5 minutes.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Medium run (8 epochs, 1 seed)</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th><th>Possessions (Metrica, 871 true)</th></tr>
+            <tr><td>GRU judge alone</td><td>+0.006 (2/3)</td><td>+0.019 (6/7)</td><td>+0.015 (8/10)</td><td>688 vs 737 now</td></tr>
+            <tr><td><b>average of GRU and boosted judge</b></td><td><b>+0.008 (3/3)</b></td><td><b>+0.015 (6/7)</b></td><td><b>+0.013 (9/10), p = 0.02, CI +0.007 to +0.020</b></td><td>681</td></tr>
+          </table>
+          <ul>
+            <li><b>The largest gain since the referee re-tune</b>, and the first idea of Phase 7 that wins on both benches, with a single seed and a short training. macroF1 also up (+0.003 to +0.006).</li>
+            <li><b>It predicts fewer possessions yet scores higher</b>: it is more precise at the moments it does call a change. The referee's costs were tuned for the boosted judge's probabilities, so a referee re-tune on the averaged probabilities is the obvious follow-up and may recover recall.</li>
+            <li><b>Confirmation run (12 epochs, 3 seeds averaged per fold, 3.4 hours):</b> the gain not only holds, it grows. With the seed noise of the net averaged away, the GRU on its own beats the boosted judge on every one of the 10 matches.</li>
+          </ul>
+          <table>
+            <tr><th>Confirmation run (12 epochs, 3 seeds)</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th><th>Bench spellF1 (Metrica / Bundesliga)</th></tr>
+            <tr><td><b>GRU judge alone</b></td><td><b>+0.030 (3/3)</b></td><td><b>+0.044 (7/7)</b></td><td><b>+0.039 (10/10), p &lt; 0.01, CI +0.032 to +0.047</b></td><td><b>0.639 / 0.533</b> (now 0.609 / 0.490)</td></tr>
+            <tr><td>average of GRU and boosted judge</td><td>+0.024 (3/3)</td><td>+0.034 (7/7)</td><td>+0.031 (10/10)</td><td>0.633 / 0.523</td></tr>
+          </table>
+          <ul>
+            <li><b>Ten times the referee re-tune's gain</b> (+0.006) and more than ten times the seed noise of the bench (±0.003). The smallest per-match gain is +0.014 (Metrica game 2), the largest +0.069 (Bundesliga J03WOH). macroF1 also rises (+0.008 Metrica, +0.010 Bundesliga).</li>
+            <li><b>Averaging with the boosted judge no longer helps.</b> On the single-seed run the average was safer; with three seeds the net's own noise is gone and the boosted judge only dilutes it. The GRU alone is the candidate.</li>
+            <li><b>Possession counts barely move</b> (742 vs 737 on Metrica, 1,973 vs 1,975 on the Bundesliga): the points come from better boundaries and fewer wrong-team calls, not from calling more or fewer possessions.</li>
+            <li><b>Next:</b> nested referee re-tune on the GRU's probabilities (the costs were tuned for the boosted judge), then the decision on a new version. The frozen submission (2e238b15…) is untouched. Integration would bring PyTorch into the reproduction path, so the rebuild must be checked for determinism (fixed seeds, CPU inference).</li>
+          </ul>
+        </div></li>
+      <li><time>16 Nov 2026</time><h3>Phase 7 #4: referee re-tune on the GRU judge's probabilities <span class="pill done">no change (D59)</span></h3>
+        <p>The referee's costs were tuned on 15 Nov for the boosted judge. A sharper judge might want a different switch cost or trust weight, so we re-ran the nested leave-one-match-out grid (<code>analysis/31_referee_retune.py gru</code> and <code>gruavg</code>, new options) on the out-of-fold GRU probabilities: round 1 (675 settings), the widened round 2 (193 settings, trust up to 5, stop down to 40), and round 1 on the GRU+boosted average.</p>
+        <div class="finding">
+          <table>
+            <tr><th>Nested re-tune vs current settings</th><th>Metrica</th><th>Bundesliga</th><th>All 10</th><th>Folds agreeing</th><th>Best pooled setting</th></tr>
+            <tr><td>GRU alone, round 1</td><td>−0.009 (0/3)</td><td>+0.001 (4/7)</td><td>−0.002 (4/10)</td><td>6/10 on switch 14, restart_same 10</td><td>+0.0026 over current (rank 64 / 675)</td></tr>
+            <tr><td>GRU alone, round 2 (widened)</td><td>−0.006 (0/3)</td><td>+0.000 (4/7)</td><td>−0.002 (4/10)</td><td>5/10 on switch 14, stop 60</td><td>+0.0026 (rank 60 / 192)</td></tr>
+            <tr><td>GRU + boosted average, round 1</td><td>−0.004 (1/3)</td><td>−0.002 (2/7)</td><td>−0.003 (3/10)</td><td>6/10 on restarts 10/2</td><td>+0.0004 (rank 4 / 675)</td></tr>
+          </table>
+          <ul>
+            <li><b>The current settings survive.</b> No grid finds a setting that wins nested; the folds split between two or three alternatives, which is the signature of noise. The trust weight's sensitivity row peaks at 4 (+0.002 over 3), inside the ±0.003 seed noise.</li>
+            <li><b>Metrica is the one to watch:</b> every re-tune loses there (0/3 each time) because the picks drift towards a cheaper switch, which splits Metrica's longer possessions.</li>
+            <li><b>So the GRU's gain is a judge gain, not a decoder gain</b>, and the referee re-tuned for the boosted judge already suits it. Settings unchanged (D59).</li>
+          </ul>
+        </div></li>
+      <li><time>17 Nov 2026</time><h3>Phase 7 #5: new submission with the GRU team judge <span class="pill done">built, SHA-1 ce1d5c24… (D60)</span></h3>
+        <p>The user unfroze the submission for the GRU. The network moved from the experiment script into <code>analysis/sequence_judge.py</code>; <code>make_submission.py</code> now trains three seeds on the CPU with PyTorch's deterministic algorithms, saves the weights and feature statistics in <code>models/</code>, loads them on later runs (checking the statistics against the rebuilt training data) and offers <code>--retrain-gru</code>. Dead-ball judge, referee, goal rule and kick-off rule unchanged. Previous file kept as <code>fallback_2026-11-16</code>.</p>
+        <div class="finding">
+          <table>
+            <tr><th></th><th>Frozen file (2e238b15…)</th><th>New file (ce1d5c24…)</th></tr>
+            <tr><td>Possessions</td><td>233</td><td>230</td></tr>
+            <tr><td>Mean / median length</td><td>14.6 s / 9.1 s</td><td>15.0 s / 9.4 s</td></tr>
+            <tr><td>Under 2 s</td><td>9</td><td>9</td></tr>
+            <tr><td>Barcelona share of live time; dead share</td><td>62%; 46.6%</td><td>62%; 45.8%</td></tr>
+            <tr><td>Frames with a different label</td><td colspan="2">8,583 of 158,857 graded (5.4%)</td></tr>
+            <tr><td>Public 5-minute check (information only, D2)</td><td>spellF1 0.55 / macroF1 0.79</td><td>spellF1 0.61 / macroF1 0.82</td></tr>
+          </table>
+          <ul>
+            <li><b>Determinism check before the build:</b> on synthetic data, CPU training repeated bit for bit and gave identical weights at 1, 4 and 10 threads; CPU inference repeated exactly. The Apple GPU trained a different network and was 70% slower (32 s against 19 s per epoch), so the build is CPU only.</li>
+            <li><b>Build time:</b> 13 minutes with training (three seeds × 12 epochs), about 2 minutes from the saved weights. Validator: valid, 199,319 rows.</li>
+            <li><b>The file changes little on the surface</b> (three fewer possessions, same shares) and 5.4% of frames move, which is what a judge that fixes boundaries and wrong-team calls should do. The public window agrees in direction, but we did not choose by it.</li>
+            <li><b>Rebuild check passed three ways:</b> a second build with <code>--retrain-gru</code> (14 min) produced byte-identical weights for all three seeds and the same SHA-1; a build from the public clone with the saved weights and <code>OMP_NUM_THREADS=1</code> (80 s) gave the same SHA-1 again. The repository regenerates the file.</li>
           </ul>
         </div></li>
     </ol>
@@ -892,6 +1000,21 @@ mean possession length s (true 13.0/7.2)     5.6    13.6     13.0        5.9    
       <article><h3><span class="id">D55</span>Kick-off rule: graded frames before a half's kick-off anchor are dead</h3>
         <p><code>apply_kickoff_rule</code> in <code>make_submission.py</code>, from the organisers' anchors in <code>games.py</code>. Submission rebuilt (SHA-1 2e238b15…); the referee-only file stays as a fallback.</p>
         <p class="why">Why: the second half's graded block starts 117 s before the ball is struck and we were predicting 9 possessions in the warm-up. The anchor is confirmed by the tracking (lined-up sides, ball out of view) and by the Smart Tagging (first phase 81 frames before it). Same class of rule as the goal rule (Phase 6 #4).</p></article>
+      <article><h3><span class="id">D56</span>The broadcast ball is not used</h3>
+        <p>Alignment (lags 4,014 / 26,920 frames, 0.8 m agreement) is reproducible with <code>analysis/34_broadcast_align.py</code>; the submission still reads the tactical tracking only.</p>
+        <p class="why">Why: it fills 13% of the missing-ball frames, and the bench simulation of exactly that gains +0.0015 spellF1, inside seed noise. Our misses are not where the ball is missing (Phase 6 #5).</p></article>
+      <article><h3><span class="id">D57</span>No two-stage auto-context judge</h3>
+        <p>The team judge stays single-stage. <code>analysis/35_auto_context.py</code> stays as a tested idea.</p>
+        <p class="why">Why: stage 2 loses on 9 of 10 matches (−0.007) and the average with stage 1 is flat; it smooths over short possessions (Phase 7 #1).</p></article>
+      <article><h3><span class="id">D58</span>No learned ball imputer in the team judge</h3>
+        <p><code>analysis/36_ball_imputer.py</code> stays as a tested idea (it is the best ball guess we have, 8 m median); the judges keep seeing the ball as missing when it is missing.</p>
+        <p class="why">Why: the imputed ball loses 0.012 spellF1 (8 of 10 matches worse, Metrica 0/3). An 8 m guess names the wrong nearest player too often, and it removes the "missing" signal the judge uses well (Phase 7 #2).</p></article>
+      <article><h3><span class="id">D59</span>The referee keeps its 15 Nov settings under the GRU judge</h3>
+        <p>REFEREE_SETTINGS (switch 20, stop 80, restarts 2/5, trust 3.0) stay unchanged if the GRU sequence judge replaces the boosted judge. The GRU is a candidate for a new version on its own merit (+0.039, 10/10); whether to make that version is the user's decision.</p>
+        <p class="why">Why: three nested grids on the GRU's probabilities (675 settings, a widened 193, and the GRU+boosted average) all lose to the current settings (−0.002, 4/10; −0.002, 4/10; −0.003, 3/10), the folds disagree on the alternative, and the best pooled setting is only +0.002 above current, inside seed noise (Phase 7 #4).</p></article>
+      <article><h3><span class="id">D60</span>The GRU sequence judge replaces the boosted team judge in the submission</h3>
+        <p>The user's decision on 17 Nov: unfreeze and ship the GRU version. <code>analysis/sequence_judge.py</code> holds the network; <code>make_submission.py</code> trains three seeds on the CPU with PyTorch's deterministic algorithms, saves the weights in <code>models/</code> and loads them on later runs. The dead-ball judge, referee settings, goal rule and kick-off rule are unchanged. The previous file (2e238b15…) is kept as <code>fallback_2026-11-16</code>.</p>
+        <p class="why">Why: +0.039 spellF1 on the bench, 10 of 10 matches, confirmed with three seeds (Phase 7 #3), ten times the referee re-tune's gain and far above seed noise; the referee needs no change for it (D59). CPU training is bit-exact on repeat and across thread counts on our machine, and it is faster than the Apple GPU here (19 s per epoch against 32 s); the GPU gives different weights, so it is not used. The weights ship with the code because another CPU may differ in the last bits.</p></article>
     </div>
   </section>
 
@@ -1080,6 +1203,10 @@ BROADCAST CAMERA (TV feed, own timeline, not synced): same file types, parked</p
       <div class="term"><dt>Convergence attractor (inferred ball)</dt><dd>A guess of where the ball is, made only from where the players are running: the point that all running directions point at best. <span class="eg">If six players sprint towards the same spot, the ball is probably there.</span> Tested 8 Nov: lands ~19 m from the real ball, no better than the centroid, because defenders chase the ball while attackers run into space.</dd></div>
       <div class="term"><dt>Centroid</dt><dd>The average position of a group of players (their centre of mass). Used as the dumb baseline any clever ball-guess must beat.</dd></div>
       <div class="term"><dt>Phases of play (SkillCorner)</dt><dd>SkillCorner's automatic split of a match into stretches (build-up, progression, chances…), each with the team in possession, defined only while the ball is in play. We read them as labels: team = the phase's team, dead = a gap of 2 s or more between phases.</dd></div>
+      <div class="term"><dt>Sequence network (GRU)</dt><dd>A model that reads a whole stretch of frames in order, remembering what came before and after (bidirectional), instead of judging one frame at a time. Ours reads 20-second windows of the same features the boosted judge uses. Confirmed 16 Nov: +0.039 spellF1 on its own, 10 of 10 matches, our largest single gain.</dd></div>
+      <div class="term"><dt>Ball imputer (learned)</dt><dd>A model that guesses the ball from the 22 players and the ball's last and next sightings during a blackout. Ours is 8 m off on average, good as a guess, but worse than an honest "missing" when fed to the team judge.</dd></div>
+      <div class="term"><dt>Auto-context (two-stage judge)</dt><dd>A second model that reads the first model's probabilities over wide windows and re-decides. On our bench it smooths over short possessions instead of recovering them.</dd></div>
+      <div class="term"><dt>Broadcast alignment (lag)</dt><dd>The broadcast recording runs on its own clock. Sliding its ball track over the tactical one until they agree gives the offset per half (4,014 and 26,920 frames). Where both see the ball they agree within 0.8 m.</dd></div>
       <div class="term"><dt>Seed noise</dt><dd>Training the same model on the same data with a different random seed gives a slightly different model. On our bench that alone moves one match by up to 0.01 spellF1 and the 10-match mean by about 0.003: anything smaller cannot be told from luck.</dd></div>
       <div class="term"><dt>Sample weight</dt><dd>A number per training example saying how much it counts. Weight 3 on short possessions makes the model try three times as hard on them, at some cost on the long easy ones.</dd></div>
       <div class="term"><dt>Transfer check</dt><dd>A label-free test: does each feature have the same distribution on the external data as on our match? A feature that behaves differently would mislead the model on our match.</dd></div>

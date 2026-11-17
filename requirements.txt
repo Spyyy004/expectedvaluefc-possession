@@ -6,3 +6,7 @@ scikit-learn==1.9.1
 scipy==1.18.1
 threadpoolctl==3.8.0
 tzdata==2026.6
+
+# GRU team judge (analysis/sequence_judge.py, make_submission.py). The build runs on the CPU only;
+# on Linux the CPU wheel is enough: pip install torch==2.15.0 --index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0

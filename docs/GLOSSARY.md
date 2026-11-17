@@ -397,3 +397,30 @@ about 0.003. Any "improvement" smaller than that cannot be told from luck (Phase
 The video frame on which the ball is struck to start a half, published by the organisers in
 games.py. The graded block of the second half starts 117 s before its anchor (warm-up and line-up),
 so our kick-off rule (D55) labels those frames dead: no possession exists before the ball is in play.
+
+**Broadcast alignment (lag)**
+The broadcast recording has its own clock. Because the ball moves the same way in both recordings,
+sliding the broadcast ball track over the tactical one until they agree gives the offset: 4,014
+frames in half 1 and 26,920 in half 2. Where both see the ball they agree within 0.8 m (median).
+The broadcast ball could fill 13% of our missing-ball frames; on the bench that was worth only
++0.0015 spellF1, so it is not used (D56).
+
+**Auto-context (two-stage judge)**
+A second model that reads the first model's probabilities over wide windows (1, 3 and 10 s) and
+re-decides. Tested in Phase 7 #1: it smooths over short possessions instead of recovering them
+(−0.007 spellF1, 9 of 10 matches worse), so it is not used (D57).
+
+**Ball imputer (learned)**
+A model that guesses where the ball is during a blackout from the 22 players and the ball's last
+and next sightings. Ours is 8 m off on average (interpolation 14 m, the old attractor 20 m), but
+feeding that guess to the team judge as if it were a real ball LOST 0.012 spellF1 (8 of 10
+matches worse): a wrong ball is worse than an honest "missing" (Phase 7 #2, D58).
+
+**Sequence network (GRU)**
+A model that reads a whole stretch of frames in order and remembers what came before and after
+(bidirectional), instead of judging one frame at a time. Ours reads 20-second windows of the same
+58 features the boosted judge uses. Confirmed (Phase 7 #3, 16 Nov, 12 epochs, 3 seeds averaged):
++0.039 spellF1 on its own, 10 of 10 matches better (bench 0.639 Metrica / 0.533 Bundesliga). Our
+largest single gain. Averaging it with the boosted judge is weaker (+0.031), and re-tuning the
+referee for it found nothing better (D59). Adopted into the submission on 17 Nov (D60): trained on
+the CPU with fixed seeds so the build repeats bit for bit; weights saved in `models/`.

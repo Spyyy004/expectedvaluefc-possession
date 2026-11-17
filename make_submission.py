@@ -9,14 +9,19 @@ Pipeline (see docs/possession_rules.md and docs/process-log.html):
      unfrozen ball, 1 m position jitter, wrong-team tracking episodes (D45)) and 3 Metrica
      sample games (organisers confirmed use; player dropouts and 1 m jitter added):
        - dead-ball detector  (gradient-boosted trees on dead-ball clues)        Step 7
-       - team judge          (gradient-boosted trees on team + turnover clues)  Steps 8a, 9
+       - team judge          (bidirectional GRU over 20 s windows of the team + turnover clues,
+                              three seeds averaged; Phase 7 #3, D60. Until 16 Nov this was a
+                              gradient-boosted model on single frames, Steps 8a, 9)
   2. Our match: compute the same clues per half, predict, then decode with the match-flow referee
      (4-state HMM + Viterbi, settings chosen on the bench)                       Step 8b
   3. Goal rule: a long ball blackout ending with the ball on the centre spot is a goal stoppage.
-  4. Write one label per tactical-video frame; X outside the two halves.
+  4. Kick-off rule: frames before the organisers' kick-off anchor are dead (D55).
+  5. Write one label per tactical-video frame; X outside the two halves.
 
 Nothing here reads the ground truth. All settings were chosen on external data only.
-Deterministic: fixed seeds; running it twice gives the identical file.
+Deterministic: fixed seeds, CPU only; running it twice gives the identical file. The GRU weights
+are trained on the CPU with deterministic algorithms (about 12 minutes) and saved in models/, so a
+later run or a fresh clone loads them instead of retraining. --retrain-gru trains them again.
 """
 import argparse
 import os
@@ -25,6 +30,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.ensemble import HistGradientBoostingClassifier
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -36,9 +42,13 @@ from analysis.features import (dead_ball_features, team_features, turnover_featu
                                LENGTH, WIDTH)
 from analysis.dead_ball import FROZEN_BALL_ARTEFACTS, TRAIN_EVERY  # noqa: E402
 from analysis.referee import viterbi, REFEREE_SETTINGS  # noqa: E402
+from analysis import sequence_judge as sj  # noqa: E402
 
 FPS = 25
 GAME = "BAR-ATH"
+MODELS = os.path.join(ROOT, "models")
+CPU = torch.device("cpu")
+torch.use_deterministic_algorithms(True)
 # Goal rule (Step 7 follow-up): long blackout ending on the centre spot = goal celebration + kick-off.
 GOAL_BLACKOUT_MIN_S = 15.0
 CENTRE_SPOT_RADIUS_M = 3.0
@@ -56,18 +66,40 @@ def team_X(h):
     return pd.concat([team_features(h), turnover_features(h)], axis=1)
 
 
-def train_models():
+def train_models(retrain_gru=False):
     halves, _ = bench(our_mess_profile(), jitter=BENCH_JITTER, sources=("dfl", "metrica"), dead_link=True,
                       wrong_team=True)
     Xd = [dead_X(h) for h in halves]
     yd = [h["label"] == "D" for h in halves]
     dead_model = model().fit(np.vstack([x.to_numpy()[::TRAIN_EVERY] for x in Xd]),
                              np.concatenate([y[::TRAIN_EVERY] for y in yd]))
-    Xt = [team_X(h) for h in halves]
-    live = [h["label"] != "D" for h in halves]
-    team_model = model().fit(np.vstack([x.to_numpy()[l][::TRAIN_EVERY] for x, l in zip(Xt, live)]),
-                             np.concatenate([(h["label"][l] == "H")[::TRAIN_EVERY] for h, l in zip(halves, live)]))
-    return dead_model, team_model
+    Xt = [team_X(h).to_numpy(dtype=np.float32) for h in halves]
+    mu, sd = sj.stats(Xt)
+    paths = [os.path.join(MODELS, "gru_seed{}.pt".format(s)) for s in range(sj.SEEDS)]
+    stats_path = os.path.join(MODELS, "gru_stats.npz")
+    if not retrain_gru and all(os.path.exists(p) for p in paths) and os.path.exists(stats_path):
+        z = np.load(stats_path)
+        if not (np.array_equal(z["mu"], mu) and np.array_equal(z["sd"], sd)):
+            raise RuntimeError("models/gru_stats.npz does not match the training clues; run with --retrain-gru")
+        nets = []
+        for p in paths:
+            net = sj.Net(Xt[0].shape[1])
+            net.load_state_dict(torch.load(p, map_location=CPU))
+            nets.append(net)
+        print("  GRU team judge: loaded {} saved networks from models/".format(len(nets)), flush=True)
+    else:
+        E = [sj.encode(x, mu, sd) for x in Xt]
+        Y = [(h["label"] == "H") for h in halves]
+        LIVE = [(h["label"] != "D") for h in halves]
+        os.makedirs(MODELS, exist_ok=True)
+        nets = []
+        for s in range(sj.SEEDS):
+            print("  GRU team judge: training seed {} on the CPU ...".format(s), flush=True)
+            net = sj.train_one(E, Y, LIVE, s, CPU, log=lambda m: print(m, flush=True))
+            torch.save(net.state_dict(), paths[s])
+            nets.append(net)
+        np.savez(stats_path, mu=mu, sd=sd)
+    return dead_model, (nets, mu, sd)
 
 
 def our_halves():
@@ -119,11 +151,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     # SUBMISSION.md: name the file after the team.
     parser.add_argument("--out", default=os.path.join(ROOT, "submissions", "ExpectedValueFC.csv"))
+    parser.add_argument("--retrain-gru", action="store_true", help="train the GRU team judge again instead of loading models/")
     args = parser.parse_args()
     t0 = time.time()
 
     print("training on 10 external matches (7 Bundesliga + 3 Metrica) ...", flush=True)
-    dead_model, team_model = train_models()
+    dead_model, (nets, mu, sd) = train_models(args.retrain_gru)
     print("  done in {:.0f} s".format(time.time() - t0), flush=True)
 
     labels = np.full(source_frames("tactical", GAME), "X", dtype="<U1")
@@ -131,7 +164,7 @@ def main():
         p_dead = dead_model.predict_proba(dead_X(h).to_numpy())[:, 1]
         p_dead, n_goals = apply_goal_rule(h, p_dead)
         p_dead, n_pre = apply_kickoff_rule(h, p_dead)
-        p_home = team_model.predict_proba(team_X(h).to_numpy())[:, 1]
+        p_home = sj.predict_ensemble(nets, sj.encode(team_X(h).to_numpy(dtype=np.float32), mu, sd), CPU)
         labels[h["first"]:h["last"] + 1] = viterbi(p_dead, p_home, **REFEREE_SETTINGS)
         print("  half {}: goal-rule blackouts {}, pre-kick-off frames forced dead {}".format(h["half"], n_goals, n_pre), flush=True)
 

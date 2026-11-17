@@ -39,9 +39,9 @@ def _parse(raw_path):
         text = handle.read().replace(":", ",").replace(";", ",")
     table = pd.read_csv(io.StringIO(text), header=None, dtype=np.float64,
                         na_values=["NaN"], engine="c").to_numpy()
-    expected = 1 + 3 * N_SLOTS + 3
-    if table.shape[1] != expected:
-        raise ValueError("expected {} columns per line, got {}".format(expected, table.shape[1]))
+    # tactical: 46 slots (142 columns); broadcast: 51 slots (157 columns). Both are "<frame>:<slots>:<ball>".
+    if (table.shape[1] - 4) % 3 != 0:
+        raise ValueError("unexpected column count {}".format(table.shape[1]))
     return table
 
 
@@ -54,13 +54,14 @@ def load_arrays(game=GAME, source="tactical", data_dir=None, use_cache=True):
     table = _parse(raw_path)
     length, width = GAMES[game]["pitch"]
     frame_id = table[:, 0].astype(np.int64)
-    players = table[:, 1:1 + 3 * N_SLOTS].reshape(-1, N_SLOTS, 3)
-    ball = table[:, 1 + 3 * N_SLOTS:]
+    n_slots = (table.shape[1] - 4) // 3
+    players = table[:, 1:1 + 3 * n_slots].reshape(-1, n_slots, 3)
+    ball = table[:, 1 + 3 * n_slots:]
 
     n = int(frame_id.max())
     def blank(shape):
         return np.full(shape, np.nan)
-    px, py, ps = blank((n, N_SLOTS)), blank((n, N_SLOTS)), blank((n, N_SLOTS))
+    px, py, ps = blank((n, n_slots)), blank((n, n_slots)), blank((n, n_slots))
     bx, by, bs = blank(n), blank(n), blank(n)
     row = frame_id - 1                      # video frame = submission row
     px[row], py[row], ps[row] = players[:, :, 0] * length, players[:, :, 1] * width, players[:, :, 2]
